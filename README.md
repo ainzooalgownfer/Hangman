@@ -16,11 +16,15 @@ nc localhost 8080
 {"action":"QUIT","session_id":"<id>"}
 ```
 
-With Docker:
+With Docker (image built by CI on every push to `main`):
 
 ```bash
-docker compose up --build
+docker run --rm -p 8080:8080 ghcr.io/ainzooalgownfer/hangman:latest
 ```
+
+Update: `docker pull ghcr.io/ainzooalgownfer/hangman:latest`
+
+Build locally instead: `docker compose up --build`
 
 ## Protocol
 

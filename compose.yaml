@@ -1,5 +1,6 @@
 services:
   hangman:
+    image: ghcr.io/ainzooalgownfer/hangman:latest
     build: .
     ports:
       - "8080:8080"
