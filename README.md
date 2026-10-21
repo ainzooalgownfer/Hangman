@@ -26,6 +26,26 @@ Update: `docker pull ghcr.io/ainzooalgownfer/hangman:latest`
 
 Build locally instead: `docker compose up --build`
 
+## Configuration
+
+Read at startup from the working directory. Both files are optional; missing values fall back to the defaults in `internal/config`. An invalid value stops the server with an error.
+
+| File | Content |
+|---|---|
+| `config.yaml` | address, max line size, idle timeout, max attempts, session TTL, words file path |
+| `words.json` | JSON array of words |
+
+Durations take a unit: `30s`, `5m`, `1h`.
+
+In Docker both files are in `/app`. To override them:
+
+```bash
+docker run --rm -p 8080:8080 \
+  -v ./config.yaml:/app/config.yaml \
+  -v ./words.json:/app/words.json \
+  ghcr.io/ainzooalgownfer/hangman:latest
+```
+
 ## Protocol
 
 | Action | Fields | Response |
@@ -222,6 +242,6 @@ TODO:
 - Check that a session belongs to the connection using it
 - Expire abandoned sessions
 - Graceful shutdown
-- Config for port and attempts
+- Config tests (config_test.go)
 - ResponseFactory
 - Leaderboard

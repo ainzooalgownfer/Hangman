@@ -1,0 +1,9 @@
+# Network
+address: ":8080"            # host:port to listen on (":8080" = all interfaces)
+max_line_size: 4096         # max bytes per JSON line; longer lines close the connection
+idle_timeout: 5m            # closes a connection after this long with no message
+
+# Game
+max_attempts: 10            # wrong guesses allowed before the game is lost
+session_time_to_live: 5m    # how long a disconnected game can still be resumed
+words_path: words.json      # JSON array of words, relative to the working directory

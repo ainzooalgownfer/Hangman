@@ -9,10 +9,10 @@ import (
 	"hangman/internal/protocol"
 )
 
-const maxAttempts = 6
-
 type NewGameHandler struct {
-	Sessions SessionStore
+	Sessions    SessionStore
+	MaxAttempts int
+	Words       []string
 }
 
 func (h *NewGameHandler) Handle(req protocol.CommandRequest) protocol.CommandResponse {
@@ -25,7 +25,7 @@ func (h *NewGameHandler) Handle(req protocol.CommandRequest) protocol.CommandRes
 		}
 	}
 
-	session := game.NewGameSession(rand.Text(), player, game.RandomWord(), maxAttempts)
+	session := game.NewGameSession(rand.Text(), player, game.RandomWord(h.Words), h.MaxAttempts)
 	h.Sessions.Add(session)
 
 	resp := session.Snapshot()

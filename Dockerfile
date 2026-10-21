@@ -11,9 +11,12 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
     go build -trimpath -ldflags="-s -w" -o /hangman ./cmd/server
 
-# Run stage: only the binary, no shell or OS packages.
+# Run stage: only the binary and its config files, no shell or OS packages.
+# The server reads config.yaml and words.json from its working directory.
 FROM scratch
-COPY --from=build /hangman /hangman
+WORKDIR /app
+COPY --from=build /hangman /app/hangman
+COPY config.yaml words.json /app/
 USER 65534:65534
 EXPOSE 8080
-ENTRYPOINT ["/hangman"]
+ENTRYPOINT ["/app/hangman"]

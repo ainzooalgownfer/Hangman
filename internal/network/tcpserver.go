@@ -15,15 +15,19 @@ import (
 // each socket connection is handled in its own goroutine, allowing multiple clients to connect simultaneously
 
 type TCPServer struct {
-	address    string
-	listener   net.Listener
-	dispatcher *command.CommandDispatcher
+	address     string
+	maxLineSize int
+	idleTimeout time.Duration
+	listener    net.Listener
+	dispatcher  *command.CommandDispatcher
 }
 
-func NewTCPServer(address string, dispatcher *command.CommandDispatcher) *TCPServer {
+func NewTCPServer(address string, maxLineSize int, idleTimeout time.Duration, dispatcher *command.CommandDispatcher) *TCPServer {
 	return &TCPServer{
-		address:    address,
-		dispatcher: dispatcher,
+		address:     address,
+		maxLineSize: maxLineSize,
+		idleTimeout: idleTimeout,
+		dispatcher:  dispatcher,
 	}
 }
 
@@ -53,7 +57,7 @@ func (s *TCPServer) Stop() error {
 }
 
 func (s *TCPServer) handleConnection(conn net.Conn) {
-	client := NewClientConnection(conn)
+	client := NewClientConnection(conn, s.maxLineSize, s.idleTimeout)
 	defer client.Close()
 
 	remote := conn.RemoteAddr().String()

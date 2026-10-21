@@ -11,27 +11,22 @@ import (
 	"time"
 )
 
-// sentinel error for "the line was read but isn't valid JSON.
 var ErrInvalidFormat = errors.New("INVALID_FORMAT")
 
-// limits that protect the server from a single client.
-const (
-	maxLineSize = 4096
-	idleTimeout = 5 * time.Minute
-)
-
 type ClientConnection struct {
-	conn      net.Conn
-	scanner   *bufio.Scanner
-	sessionID string
+	conn        net.Conn
+	scanner     *bufio.Scanner
+	sessionID   string
+	idleTimeout time.Duration
 }
 
-func NewClientConnection(conn net.Conn) *ClientConnection {
+func NewClientConnection(conn net.Conn, maxLineSize int, idleTimeout time.Duration) *ClientConnection {
 	scanner := bufio.NewScanner(conn)
-	scanner.Buffer(make([]byte, 0, 1024), maxLineSize)
+	scanner.Buffer(make([]byte, 0, min(1024, maxLineSize)), maxLineSize)
 	return &ClientConnection{
-		conn:    conn,
-		scanner: scanner,
+		conn:        conn,
+		scanner:     scanner,
+		idleTimeout: idleTimeout,
 	}
 }
 
@@ -39,7 +34,7 @@ func NewClientConnection(conn net.Conn) *ClientConnection {
 func (c *ClientConnection) ReadCommand() (protocol.CommandRequest, error) {
 
 	// The deadline is reset before every read, so it is an *idle* timeout.
-	if err := c.conn.SetReadDeadline(time.Now().Add(idleTimeout)); err != nil {
+	if err := c.conn.SetReadDeadline(time.Now().Add(c.idleTimeout)); err != nil {
 		return protocol.CommandRequest{}, err
 	}
 

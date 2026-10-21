@@ -12,7 +12,7 @@ import (
 func setupDispatcher() *command.CommandDispatcher {
 	store := game.NewSessionManager()
 	d := command.NewCommandDispatcher()
-	handlers.RegisterAll(d, store)
+	handlers.RegisterAll(d, store, 6, []string{"chat", "pomme", "robot"})
 	return d
 }
 
