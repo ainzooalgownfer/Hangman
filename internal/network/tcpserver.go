@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net"
+	"time"
 
 	"hangman/internal/command"
 	"hangman/internal/protocol"
@@ -54,11 +56,17 @@ func (s *TCPServer) handleConnection(conn net.Conn) {
 	client := NewClientConnection(conn)
 	defer client.Close()
 
+	remote := conn.RemoteAddr().String()
+	slog.Info("client connected", "remote", remote)
+
+	defer slog.Info("client disconnected", "remote", remote)
+
 	for {
 		req, err := client.ReadCommand()
-		// FIX (bug 1): a malformed line used to close the connection silently.
-		// Now we answer with an ERROR and keep reading; the client can retry.
+
 		if errors.Is(err, ErrInvalidFormat) {
+
+			slog.Warn("invalid request", "remote", remote, "err", err)
 			if err := client.SendResponse(protocol.CommandResponse{
 				Type:    "ERROR",
 				Code:    "INVALID_FORMAT",
@@ -69,10 +77,25 @@ func (s *TCPServer) handleConnection(conn net.Conn) {
 			continue
 		}
 		if err != nil {
-			return // Conn closed by client, broken pipe, idle timeout or line too long
+			return
 		}
 
+		start := time.Now()
 		resp := s.dispatcher.Dispatch(req)
+
+		session := resp.SessionID
+		if session == "" {
+			session = req.SessionID
+		}
+		slog.Info("request",
+			"remote", remote,
+			"action", req.Action,
+			"session", session,
+			"type", resp.Type,
+			"status", resp.Status,
+			"code", resp.Code,
+			"duration", time.Since(start),
+		)
 
 		if resp.SessionID != "" {
 			client.SetSessionID(resp.SessionID)

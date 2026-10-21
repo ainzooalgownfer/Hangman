@@ -4,7 +4,9 @@ import (
 	"hangman/internal/protocol"
 )
 
-type ResumeHandler struct{}
+type ResumeHandler struct {
+	Sessions SessionStore
+}
 
 func (h *ResumeHandler) Handle(req protocol.CommandRequest) protocol.CommandResponse {
 	if req.SessionID == "" {
@@ -14,14 +16,19 @@ func (h *ResumeHandler) Handle(req protocol.CommandRequest) protocol.CommandResp
 			Message: "Identifiant de session manquant.",
 		}
 	}
+	session, ok := h.Sessions.Get(req.SessionID)
 
-	return protocol.CommandResponse{
-		Type:         "STATE",
-		SessionID:    req.SessionID,
-		MaskedWord:   "_ E _ _ E",
-		AttemptsLeft: new(6), // FIX (bug 2): field is now *int; new(expr) needs Go 1.26+
-		TriedLetters: []string{"E"},
-		Status:       "IN_PROGRESS",
-		Message:      "Session reprise avec succès.",
+	if !ok {
+		return protocol.CommandResponse{
+			Type:    "ERROR",
+			Code:    "SESSION_NOT_FOUND",
+			Message: "Session introuvable.",
+		}
 	}
+
+	resp := session.Snapshot()
+	resp.Message = "Session reprise avec succès."
+
+	return resp
+
 }

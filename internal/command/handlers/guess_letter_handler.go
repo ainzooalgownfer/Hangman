@@ -7,7 +7,9 @@ import (
 	"hangman/internal/protocol"
 )
 
-type GuessLetterHandler struct{}
+type GuessLetterHandler struct {
+	Sessions SessionStore
+}
 
 func (h *GuessLetterHandler) Handle(req protocol.CommandRequest) protocol.CommandResponse {
 	if req.SessionID == "" {
@@ -20,7 +22,7 @@ func (h *GuessLetterHandler) Handle(req protocol.CommandRequest) protocol.Comman
 
 	trimmed := strings.TrimSpace(req.Letter)
 	runes := []rune(trimmed)
-	if len(runes) != 1 || !unicode.IsLetter(runes[0]) {
+	if len(runes) != 1 || !unicode.IsLetter(runes[0]) { //invalid letter
 		return protocol.CommandResponse{
 			Type:    "ERROR",
 			Code:    "INVALID_LETTER",
@@ -28,13 +30,15 @@ func (h *GuessLetterHandler) Handle(req protocol.CommandRequest) protocol.Comman
 		}
 	}
 
-	return protocol.CommandResponse{
-		Type:         "STATE",
-		SessionID:    req.SessionID,
-		MaskedWord:   "_ E _ _ E",
-		AttemptsLeft: new(6), // FIX (bug 2): field is now *int; new(expr) needs Go 1.26+
-		TriedLetters: []string{strings.ToUpper(string(runes[0]))},
-		Status:       "IN_PROGRESS",
-		Message:      "Bien vu !",
+	session, ok := h.Sessions.Get(req.SessionID)
+	if !ok {
+		return protocol.CommandResponse{
+			Type:    "ERROR",
+			Code:    "SESSION_NOT_FOUND",
+			Message: "Session introuvable",
+		}
 	}
+
+	return session.Guess(trimmed)
+
 }
