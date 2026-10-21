@@ -17,7 +17,7 @@ func (s *InProgressState) Guess(session StateSession, letter string) protocol.Co
 	if slices.Contains(session.TriedLetters(), upper) {
 		return protocol.CommandResponse{
 			Type:    "ERROR",
-			Code:    "LETTER_ALREADY_TRIED",
+			Code:    "ALREADY_GUESSED",
 			Message: "Lettre déjà proposée.",
 		}
 	}

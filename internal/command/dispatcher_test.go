@@ -106,8 +106,8 @@ func TestGuessLetterHandler(t *testing.T) {
 		SessionID: id,
 		Letter:    "E",
 	})
-	if resDup.Code != "LETTER_ALREADY_TRIED" {
-		t.Errorf("expected LETTER_ALREADY_TRIED, got %+v", resDup)
+	if resDup.Code != "ALREADY_GUESSED" {
+		t.Errorf("expected ALREADY_GUESSED, got %+v", resDup)
 	}
 }
 
@@ -142,4 +142,3 @@ func TestQuitHandler(t *testing.T) {
 		t.Errorf("expected session removed after QUIT, got %+v", resAfter)
 	}
 }
-

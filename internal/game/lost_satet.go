@@ -11,7 +11,7 @@ type LostState struct{}
 func (s *LostState) Guess(session StateSession, letter string) protocol.CommandResponse {
 	return protocol.CommandResponse{
 		Type:    "ERROR",
-		Code:    "GAME_OVER",
+		Code:    "GAME_ALREADY_OVER",
 		Message: "La partie est terminée.",
 	}
 }

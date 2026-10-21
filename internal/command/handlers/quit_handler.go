@@ -4,7 +4,7 @@ import (
 	"hangman/internal/protocol"
 )
 
-type QuitHandler struct{
+type QuitHandler struct {
 	Sessions SessionStore
 }
 
@@ -17,7 +17,7 @@ func (h *QuitHandler) Handle(req protocol.CommandRequest) protocol.CommandRespon
 		}
 	}
 
-	session , ok := h.Sessions.Get(req.SessionID)
+	session, ok := h.Sessions.Get(req.SessionID)
 	if !ok {
 		return protocol.CommandResponse{
 			Type:    "ERROR",
@@ -31,7 +31,7 @@ func (h *QuitHandler) Handle(req protocol.CommandRequest) protocol.CommandRespon
 	resp.Status = "ABANDONED"
 	resp.SecretWord = session.SecretWord()
 	resp.Message = "Partie abandonnée."
-	
+
 	h.Sessions.Remove(req.SessionID)
 
 	return resp

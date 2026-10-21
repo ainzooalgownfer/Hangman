@@ -102,7 +102,7 @@ func TestConcurrentGuessesSameSession(t *testing.T) {
 		switch {
 		case resp.Type == "STATE":
 			accepted++
-		case resp.Code == "LETTER_ALREADY_TRIED", resp.Code == "GAME_OVER":
+		case resp.Code == "ALREADY_GUESSED", resp.Code == "GAME_ALREADY_OVER":
 			// expected under contention
 		default:
 			t.Errorf("unexpected response: %+v", resp)

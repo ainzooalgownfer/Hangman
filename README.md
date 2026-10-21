@@ -43,8 +43,8 @@ Errors: `{"type":"ERROR","code":"...","message":"..."}`
 | `UNKNOWN_ACTION` | unknown action |
 | `SESSION_NOT_FOUND` | missing or unknown `session_id` |
 | `INVALID_LETTER` | not a single letter |
-| `LETTER_ALREADY_TRIED` | letter already guessed |
-| `GAME_OVER` | game already won or lost |
+| `ALREADY_GUESSED` | letter already guessed |
+| `GAME_ALREADY_OVER` | game already won or lost |
 
 ## Structure
 

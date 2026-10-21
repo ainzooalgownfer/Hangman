@@ -38,8 +38,8 @@ func TestWinGame(t *testing.T) {
 
 	// A finished game rejects any further guess.
 	resp = s.Guess("z")
-	if resp.Type != "ERROR" || resp.Code != "GAME_OVER" {
-		t.Errorf("expected ERROR GAME_OVER after win, got type=%s code=%s", resp.Type, resp.Code)
+	if resp.Type != "ERROR" || resp.Code != "GAME_ALREADY_OVER" {
+		t.Errorf("expected ERROR GAME_ALREADY_OVER after win, got type=%s code=%s", resp.Type, resp.Code)
 	}
 }
 
@@ -63,8 +63,8 @@ func TestLoseGame(t *testing.T) {
 	}
 
 	resp = s.Guess("c")
-	if resp.Type != "ERROR" || resp.Code != "GAME_OVER" {
-		t.Errorf("expected ERROR GAME_OVER after loss, got type=%s code=%s", resp.Type, resp.Code)
+	if resp.Type != "ERROR" || resp.Code != "GAME_ALREADY_OVER" {
+		t.Errorf("expected ERROR GAME_ALREADY_OVER after loss, got type=%s code=%s", resp.Type, resp.Code)
 	}
 }
 
@@ -101,8 +101,8 @@ func TestDuplicateLetter(t *testing.T) {
 	s.Guess("z") // a miss, so a wrongly charged duplicate would be visible
 	resp := s.Guess("Z")
 
-	if resp.Type != "ERROR" || resp.Code != "LETTER_ALREADY_TRIED" {
-		t.Fatalf("expected ERROR LETTER_ALREADY_TRIED (case-insensitive), got type=%s code=%s", resp.Type, resp.Code)
+	if resp.Type != "ERROR" || resp.Code != "ALREADY_GUESSED" {
+		t.Fatalf("expected ERROR ALREADY_GUESSED (case-insensitive), got type=%s code=%s", resp.Type, resp.Code)
 	}
 
 	// The duplicate must not cost an attempt or be recorded twice.
