@@ -1,0 +1,7 @@
+.git
+.claude
+.vscode
+*.md
+scripts
+Dockerfile
+compose.yaml

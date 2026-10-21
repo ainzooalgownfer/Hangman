@@ -16,6 +16,12 @@ nc localhost 8080
 {"action":"QUIT","session_id":"<id>"}
 ```
 
+With Docker:
+
+```bash
+docker compose up --build
+```
+
 ## Protocol
 
 | Action | Fields | Response |
