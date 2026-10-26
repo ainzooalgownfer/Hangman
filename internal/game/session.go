@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 	"unicode"
 )
 
@@ -17,6 +18,7 @@ type GameSession struct {
 	attemptsLeft int
 	triedLetters []string
 	currentState GameState
+	lastActive   time.Time
 }
 
 func NewGameSession(id, player, secretWord string, maxAttempts int) *GameSession {
@@ -27,6 +29,7 @@ func NewGameSession(id, player, secretWord string, maxAttempts int) *GameSession
 		attemptsLeft: maxAttempts,
 		triedLetters: make([]string, 0),
 		currentState: &InProgressState{},
+		lastActive:   time.Now(),
 	}
 
 	session.UpdateMaskedWord()
@@ -37,6 +40,7 @@ func NewGameSession(id, player, secretWord string, maxAttempts int) *GameSession
 func (s *GameSession) Guess(letter string) protocol.CommandResponse {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.lastActive = time.Now()
 	return s.currentState.Guess(s, letter)
 }
 
@@ -52,6 +56,8 @@ func (s *GameSession) GetState() string {
 func (s *GameSession) Snapshot() protocol.CommandResponse {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.lastActive = time.Now()
+
 	return stateResponse(s, s.currentState.GetStatus(), "")
 }
 
@@ -94,4 +100,10 @@ func (s *GameSession) UpdateMaskedWord() {
 
 func (s *GameSession) IsWordComplete() bool {
 	return !strings.Contains(s.maskedWord, "_")
+}
+
+func (s *GameSession) IdleSince(now time.Time) time.Duration {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return now.Sub(s.lastActive)
 }

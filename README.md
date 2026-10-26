@@ -31,7 +31,7 @@ Build locally instead: `docker compose up --build`
 Read at startup from the working directory. Both files are optional; missing values fall back to the defaults in `internal/config`. An invalid value stops the server with an error.
 
 | File | Content |
-|---|---|
+| --- | --- |
 | `config.yaml` | address, max line size, idle timeout, max attempts, session TTL, words file path |
 | `words.json` | JSON array of words |
 
@@ -49,7 +49,7 @@ docker run --rm -p 8080:8080 \
 ## Protocol
 
 | Action | Fields | Response |
-|---|---|---|
+| --- | --- | --- |
 | `NEW_GAME` | `player` | `STATE` |
 | `LETTER` | `session_id`, `letter` | `STATE` (`IN_PROGRESS`, `WON`, `LOST`) |
 | `RESUME` | `session_id` | `STATE` |
@@ -58,7 +58,7 @@ docker run --rm -p 8080:8080 \
 Errors: `{"type":"ERROR","code":"...","message":"..."}`
 
 | Code | When |
-|---|---|
+| --- | --- |
 | `INVALID_FORMAT` | invalid JSON or missing `player` |
 | `UNKNOWN_ACTION` | unknown action |
 | `SESSION_NOT_FOUND` | missing or unknown `session_id` |
@@ -206,7 +206,7 @@ classDiagram
 ### Patterns
 
 | Pattern | Classes |
-|---|---|
+| --- | --- |
 | Command / Handler registry | `CommandDispatcher`, `CommandHandler`, handlers |
 | State | `GameSession`, `GameState`, `InProgressState`, `WonState`, `LostState` |
 | Repository | `SessionStore`, `SessionManager` |

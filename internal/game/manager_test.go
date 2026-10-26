@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestManagerAddGetRemove(t *testing.T) {
@@ -61,5 +62,51 @@ func TestManagerConcurrentAdd(t *testing.T) {
 		if _, ok := m.Get(fmt.Sprintf("id%d", i)); !ok {
 			t.Fatalf("session id%d missing after concurrent Add", i)
 		}
+	}
+}
+
+func TestRemoveExpired_RemoveIdle(t *testing.T) {
+	m := NewSessionManager()
+	s := NewGameSession("1", "med", "TEST", 10)
+
+	m.Add(s)
+	r := m.RemoveExpired(time.Now().Add(10*time.Minute), 5*time.Minute)
+
+	_, ok := m.Get(s.id)
+	if r != 1 || ok {
+		t.Fatalf("expected 1 removed and session gone, got removed=%d found=%v", r, ok)
+
+	}
+
+}
+
+func TestRemoveExpired_KeepRecents(t *testing.T) {
+	m := NewSessionManager()
+	s := NewGameSession("1", "med", "TEST", 10)
+
+	m.Add(s)
+	r := m.RemoveExpired(time.Now(), 5*time.Minute)
+
+	_, ok := m.Get(s.id)
+	if r != 0 || !ok {
+		t.Fatalf("expected 0 removed and Session found, got removed=%d , found=%v", r, ok)
+	}
+
+}
+
+func TestRemoveExpired_ActivityResetsTimer(t *testing.T) {
+	m := NewSessionManager()
+	s := NewGameSession("1", "med", "TEST", 10)
+
+	m.Add(s)
+	//simulate a old active session beacuse guess and the constructore both call now()time
+	s.lastActive = time.Now().Add(-7 * time.Minute)
+	s.Guess("T")
+
+	r := m.RemoveExpired(time.Now().Add(3 * time.Minute), 5*time.Minute)
+
+	_, ok := m.Get(s.id)
+	if r != 0 || !ok {
+		t.Fatalf("expected 0 and found cause Guess updates lastActive, got removed=%d, found=%v", r,ok)
 	}
 }
