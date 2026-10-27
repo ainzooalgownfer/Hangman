@@ -28,7 +28,11 @@ func (h *QuitHandler) Handle(req protocol.CommandRequest) protocol.CommandRespon
 
 	resp := session.Snapshot()
 	resp.Type = "BYE"
-	resp.Status = "ABANDONED"
+
+	if resp.Status == "IN_PROGRESS" {
+		resp.Status = "ABANDONED"
+	}
+
 	resp.SecretWord = session.SecretWord()
 	resp.Message = "Partie abandonnée."
 

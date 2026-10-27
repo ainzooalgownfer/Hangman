@@ -3,15 +3,16 @@ package game
 import (
 	"hangman/internal/protocol"
 	"slices"
-	"strings"
 )
 
 type InProgressState struct{}
 
 func (s *InProgressState) Guess(session StateSession, letter string) protocol.CommandResponse {
 
-	upper := strings.ToUpper(letter)
-	found := strings.Contains(session.SecretWord(), upper)
+	base , _  := BaseLetter([]rune(letter)[0])
+
+	upper := string(base)
+	found := ContainsBase(session.SecretWord() , base)
 	message := "Bien vu !"
 
 	if slices.Contains(session.TriedLetters(), upper) {
@@ -22,7 +23,7 @@ func (s *InProgressState) Guess(session StateSession, letter string) protocol.Co
 		}
 	}
 
-	session.AddTriedLetter(letter)
+	session.AddTriedLetter(upper)
 
 	if !found {
 		session.DecrementAttempts()

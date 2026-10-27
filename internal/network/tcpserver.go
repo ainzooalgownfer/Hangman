@@ -1,11 +1,13 @@
 package network
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"log"
 	"log/slog"
 	"net"
+	"os"
 	"time"
 
 	"hangman/internal/command"
@@ -62,7 +64,6 @@ func (s *TCPServer) handleConnection(conn net.Conn) {
 
 	remote := conn.RemoteAddr().String()
 	slog.Info("client connected", "remote", remote)
-
 	defer slog.Info("client disconnected", "remote", remote)
 
 	for {
@@ -81,6 +82,22 @@ func (s *TCPServer) handleConnection(conn net.Conn) {
 			continue
 		}
 		if err != nil {
+			switch {
+			case errors.Is(err, os.ErrDeadlineExceeded):
+				slog.Warn("idle timeout", "remote", remote)
+				client.SendResponse(protocol.CommandResponse{
+					Type:    "ERROR",
+					Code:    "TIMEOUT",
+					Message: "Délai d'inactivité dépassé.",
+				})
+			case errors.Is(err, bufio.ErrTooLong):
+				slog.Warn("message too long", "remote", remote)
+				client.SendResponse(protocol.CommandResponse{
+					Type:    "ERROR",
+					Code:    "INVALID_FORMAT",
+					Message: "Message trop long.",
+				})
+			}
 			return
 		}
 

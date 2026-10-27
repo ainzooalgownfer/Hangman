@@ -6,7 +6,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"unicode"
 )
 
 type GameSession struct {
@@ -58,7 +57,12 @@ func (s *GameSession) Snapshot() protocol.CommandResponse {
 	defer s.mu.Unlock()
 	s.lastActive = time.Now()
 
-	return stateResponse(s, s.currentState.GetStatus(), "")
+	resp := stateResponse(s, s.currentState.GetStatus(), "")
+	if resp.Status == "WON" || resp.Status == "LOST" {
+		resp.SecretWord = s.secretWord
+	}
+
+	return resp
 }
 
 func (s *GameSession) ID() string             { return s.id }
@@ -89,12 +93,16 @@ func (s *GameSession) UpdateMaskedWord() {
 
 	var parts []string
 	for _, r := range s.secretWord {
-		if letterSet[r] || !unicode.IsLetter(r) {
+		b, ok := BaseLetter(r)
+		if !ok {
+			parts = append(parts, string(r))
+		} else if letterSet[b] {
 			parts = append(parts, string(r))
 		} else {
 			parts = append(parts, "_")
 		}
 	}
+
 	s.maskedWord = strings.Join(parts, " ")
 }
 

@@ -31,7 +31,7 @@ func Default() Config {
 		SessionTTL:  5 * time.Minute,
 		WordsPath:   "words.json",
 		Words: []string{
-			"apple", "brave", "crane", "delta", "eagle",
+			"lumière", "brave", "crane", "delta", "eagle",
 			"flame", "grape", "honey", "igloo", "joker",
 			"kneel", "lemon", "mango", "noble", "ocean",
 			"piano", "queen", "river", "stone", "tiger",

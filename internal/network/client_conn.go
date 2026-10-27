@@ -59,6 +59,11 @@ func (c *ClientConnection) SendResponse(res protocol.CommandResponse) error {
 	if err != nil {
 		return err
 	}
+
+	if err := c.conn.SetWriteDeadline(time.Now().Add(c.idleTimeout)); err != nil {
+		return err
+	}
+
 	_, err = c.conn.Write(append(data, '\n'))
 	return err
 }

@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"strings"
-	"unicode"
 
+	"hangman/internal/game"
 	"hangman/internal/protocol"
 )
 
@@ -22,7 +22,15 @@ func (h *GuessLetterHandler) Handle(req protocol.CommandRequest) protocol.Comman
 
 	trimmed := strings.TrimSpace(req.Letter)
 	runes := []rune(trimmed)
-	if len(runes) != 1 || !unicode.IsLetter(runes[0]) { //invalid letter
+	if len(runes) != 1  { 
+		return protocol.CommandResponse{
+			Type:    "ERROR",
+			Code:    "INVALID_LETTER",
+			Message: "Une seule lettre alphabétique est attendue.",
+		}
+	}
+
+	if _, ok := game.BaseLetter(runes[0]); !ok {
 		return protocol.CommandResponse{
 			Type:    "ERROR",
 			Code:    "INVALID_LETTER",
