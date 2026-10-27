@@ -9,10 +9,10 @@ type InProgressState struct{}
 
 func (s *InProgressState) Guess(session StateSession, letter string) protocol.CommandResponse {
 
-	base , _  := BaseLetter([]rune(letter)[0])
+	base, _ := BaseLetter([]rune(letter)[0])
 
 	upper := string(base)
-	found := ContainsBase(session.SecretWord() , base)
+	found := ContainsBase(session.SecretWord(), base)
 	message := "Bien vu !"
 
 	if slices.Contains(session.TriedLetters(), upper) {

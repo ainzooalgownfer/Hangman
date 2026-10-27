@@ -22,7 +22,7 @@ func (h *GuessLetterHandler) Handle(req protocol.CommandRequest) protocol.Comman
 
 	trimmed := strings.TrimSpace(req.Letter)
 	runes := []rune(trimmed)
-	if len(runes) != 1  { 
+	if len(runes) != 1 {
 		return protocol.CommandResponse{
 			Type:    "ERROR",
 			Code:    "INVALID_LETTER",

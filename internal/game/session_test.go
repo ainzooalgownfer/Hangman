@@ -164,12 +164,12 @@ func TestSnapshot(t *testing.T) {
 	}
 }
 
-func Test_SnapshotSecretWord( t * testing.T) {
+func Test_SnapshotSecretWord(t *testing.T) {
 	s := NewGameSession("id1", "Alice", "chat", 1)
 	s.Guess("m")
 
 	snap := s.Snapshot()
 	if snap.Status != "LOST" || snap.SecretWord != "CHAT" {
-		t.Fatalf("expected State Lost and return Secret Word, got status=%v, SW=%v",snap.Status, snap.SecretWord)
+		t.Fatalf("expected State Lost and return Secret Word, got status=%v, SW=%v", snap.Status, snap.SecretWord)
 	}
 }

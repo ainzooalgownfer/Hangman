@@ -103,10 +103,10 @@ func TestRemoveExpired_ActivityResetsTimer(t *testing.T) {
 	s.lastActive = time.Now().Add(-7 * time.Minute)
 	s.Guess("T")
 
-	r := m.RemoveExpired(time.Now().Add(3 * time.Minute), 5*time.Minute)
+	r := m.RemoveExpired(time.Now().Add(3*time.Minute), 5*time.Minute)
 
 	_, ok := m.Get(s.id)
 	if r != 0 || !ok {
-		t.Fatalf("expected 0 and found cause Guess updates lastActive, got removed=%d, found=%v", r,ok)
+		t.Fatalf("expected 0 and found cause Guess updates lastActive, got removed=%d, found=%v", r, ok)
 	}
 }

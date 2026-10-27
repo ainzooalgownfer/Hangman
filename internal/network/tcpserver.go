@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"log"
+
 	"log/slog"
 	"net"
 	"os"
@@ -39,11 +39,18 @@ func (s *TCPServer) Start() error {
 	if err != nil {
 		return fmt.Errorf("impossible d'écouter sur %s: %w", s.address, err)
 	}
-	log.Printf("TCPServer en écoute sur %s\n", s.address)
+	slog.Info("server listening", "address", s.address)
+	return nil
 
+}
+
+func (s *TCPServer) Server() error {
 	for {
 		conn, err := s.listener.Accept()
 		if err != nil {
+			if errors.Is(err, net.ErrClosed) {
+				return nil
+			}
 			return err
 		}
 		// equivalent to threading.
@@ -123,7 +130,7 @@ func (s *TCPServer) handleConnection(conn net.Conn) {
 		}
 
 		if err := client.SendResponse(resp); err != nil {
-			log.Printf("Erreur d'envoi client: %v", err)
+			slog.Warn("send failed", "remote", remote, "err", err)
 			return
 		}
 

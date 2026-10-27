@@ -1,8 +1,11 @@
 package main
 
 import (
-	"log"
+	"context"
 	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"hangman/internal/command"
@@ -16,14 +19,15 @@ func main() {
 
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("failed to load config: %v", err)
+		slog.Error("failed to load config", "err", err)
+		os.Exit(1)
 	}
 
 	slog.Info("config loaded",
 		"address", cfg.Address,
 		"max_attempts", cfg.MaxAttempts,
 		"idle_timeout", cfg.IdleTimeout,
-		"ttl value", cfg.SessionTTL,
+		"session_ttl", cfg.SessionTTL,
 		"words", len(cfg.Words),
 	)
 
@@ -36,6 +40,26 @@ func main() {
 
 	server := network.NewTCPServer(cfg.Address, cfg.MaxLineSize, cfg.IdleTimeout, dispatcher)
 	if err := server.Start(); err != nil {
-		log.Fatalf("Erreur serveur: %v", err)
+		slog.Error("cannot listen", "err", err)
+		os.Exit(1)
 	}
+
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	errCh := make(chan error, 1)
+	go func() { errCh <- server.Server() }()
+
+	select {
+	case <-ctx.Done():
+		slog.Info("Shutting down")
+		server.Stop()
+		<-errCh 
+	case err:= <-errCh:
+		if err != nil {
+			slog.Error("server stopped", "err",err)
+			os.Exit(1)
+		}
+	}
+	slog.Info("server stopped")
 }
