@@ -4,6 +4,8 @@ Multiplayer Hangman server in Go. TCP, one JSON object per line, one goroutine p
 
 ## Run
 
+Listens on IPv4 and IPv6 (`:5050` is dual-stack): `nc 127.0.0.1 5050` and `nc ::1 5050` both work.
+
 ```bash
 go run ./cmd/server        # :8080
 nc localhost 8080
