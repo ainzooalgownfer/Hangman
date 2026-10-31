@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"hangman/internal/game"
+	"hangman/internal/game/words"
 	"hangman/internal/protocol"
 )
 
@@ -25,7 +26,7 @@ func (h *NewGameHandler) Handle(req protocol.CommandRequest) protocol.CommandRes
 		}
 	}
 
-	session := game.NewGameSession(rand.Text(), player, game.RandomWord(h.Words), h.MaxAttempts)
+	session := game.NewGameSession(rand.Text(), player, words.RandomWord(h.Words), h.MaxAttempts)
 	h.Sessions.Add(session)
 
 	resp := session.Snapshot()

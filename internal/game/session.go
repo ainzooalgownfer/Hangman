@@ -1,11 +1,14 @@
 package game
 
 import (
-	"hangman/internal/protocol"
 	"slices"
 	"strings"
 	"sync"
 	"time"
+
+	"hangman/internal/game/state"
+	"hangman/internal/game/words"
+	"hangman/internal/protocol"
 )
 
 type GameSession struct {
@@ -16,9 +19,12 @@ type GameSession struct {
 	maskedWord   string
 	attemptsLeft int
 	triedLetters []string
-	currentState GameState
+	currentState state.GameState
 	lastActive   time.Time
 }
+
+// GameSession is what the states act on, through the state.StateSession interface.
+var _ state.StateSession = (*GameSession)(nil)
 
 func NewGameSession(id, player, secretWord string, maxAttempts int) *GameSession {
 	session := &GameSession{
@@ -27,7 +33,7 @@ func NewGameSession(id, player, secretWord string, maxAttempts int) *GameSession
 		secretWord:   strings.ToUpper(secretWord),
 		attemptsLeft: maxAttempts,
 		triedLetters: make([]string, 0),
-		currentState: &InProgressState{},
+		currentState: &state.InProgressState{},
 		lastActive:   time.Now(),
 	}
 
@@ -51,8 +57,8 @@ func (s *GameSession) Quit() protocol.CommandResponse {
 
 }
 
-func (s *GameSession) SetState(state GameState) {
-	s.currentState = state
+func (s *GameSession) SetState(st state.GameState) {
+	s.currentState = st
 }
 
 func (s *GameSession) GetState() string {
@@ -65,7 +71,7 @@ func (s *GameSession) Snapshot() protocol.CommandResponse {
 	defer s.mu.Unlock()
 	s.lastActive = time.Now()
 
-	resp := stateResponse(s, s.currentState.GetStatus(), "")
+	resp := state.StateResponse(s, s.currentState.GetStatus(), "")
 	if resp.Status == "WON" || resp.Status == "LOST" || resp.Status == "ABANDONED" {
 		resp.SecretWord = s.secretWord
 	}
@@ -101,7 +107,7 @@ func (s *GameSession) UpdateMaskedWord() {
 
 	var parts []string
 	for _, r := range s.secretWord {
-		b, ok := BaseLetter(r)
+		b, ok := words.BaseLetter(r)
 		if !ok {
 			parts = append(parts, string(r))
 		} else if letterSet[b] {

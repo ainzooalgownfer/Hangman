@@ -1,4 +1,4 @@
-package game
+package state
 
 import "hangman/internal/protocol"
 
@@ -21,7 +21,8 @@ type GameState interface {
 	Quit(session StateSession) protocol.CommandResponse
 }
 
-func stateResponse(session StateSession, status, message string) protocol.CommandResponse {
+// StateResponse builds a STATE response from the session.
+func StateResponse(session StateSession, status, message string) protocol.CommandResponse {
 	return protocol.CommandResponse{
 		Type:         "STATE",
 		SessionID:    session.ID(),

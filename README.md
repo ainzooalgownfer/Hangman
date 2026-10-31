@@ -73,7 +73,9 @@ cmd/server         entry point
 internal/network   TCP server, connections, logging
 internal/command   dispatcher
   handlers         one handler per action, SessionStore interface
-internal/game      GameSession, states, SessionManager, words
+internal/game      GameSession, SessionManager
+  state            GameState + the 4 states (State pattern)
+  words            word list, accents (BaseLetter)
 internal/protocol  request/response types
 scripts            load simulation
 ```

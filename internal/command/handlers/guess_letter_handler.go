@@ -3,7 +3,7 @@ package handlers
 import (
 	"strings"
 
-	"hangman/internal/game"
+	"hangman/internal/game/words"
 	"hangman/internal/protocol"
 )
 
@@ -30,7 +30,7 @@ func (h *GuessLetterHandler) Handle(req protocol.CommandRequest) protocol.Comman
 		}
 	}
 
-	if _, ok := game.BaseLetter(runes[0]); !ok {
+	if _, ok := words.BaseLetter(runes[0]); !ok {
 		return protocol.CommandResponse{
 			Type:    "ERROR",
 			Code:    "INVALID_LETTER",

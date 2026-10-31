@@ -1,4 +1,4 @@
-package game
+package words
 
 import (
 	"math/rand/v2"

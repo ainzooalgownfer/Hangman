@@ -1,18 +1,20 @@
-package game
+package state
 
 import (
-	"hangman/internal/protocol"
 	"slices"
+
+	"hangman/internal/game/words"
+	"hangman/internal/protocol"
 )
 
 type InProgressState struct{}
 
 func (s *InProgressState) Guess(session StateSession, letter string) protocol.CommandResponse {
 
-	base, _ := BaseLetter([]rune(letter)[0])
+	base, _ := words.BaseLetter([]rune(letter)[0])
 
 	upper := string(base)
-	found := ContainsBase(session.SecretWord(), base)
+	found := words.ContainsBase(session.SecretWord(), base)
 	message := "Bien vu !"
 
 	if slices.Contains(session.TriedLetters(), upper) {
@@ -34,25 +36,25 @@ func (s *InProgressState) Guess(session StateSession, letter string) protocol.Co
 
 	if session.IsWordComplete() {
 		session.SetState(&WonState{})
-		resp := stateResponse(session, "WON", "bravo !")
+		resp := StateResponse(session, "WON", "bravo !")
 		resp.SecretWord = session.SecretWord()
 		return resp
 	}
 
 	if session.AttemptsLeft() == 0 {
 		session.SetState(&LostState{})
-		resp := stateResponse(session, "LOST", "game over")
+		resp := StateResponse(session, "LOST", "game over")
 		resp.SecretWord = session.SecretWord()
 		return resp
 	}
 
-	return stateResponse(session, "IN_PROGRESS", message)
+	return StateResponse(session, "IN_PROGRESS", message)
 
 }
 
 func (s *InProgressState) Quit(session StateSession) protocol.CommandResponse {
 	session.SetState(&AbandonedState{})
-	resp := stateResponse(session, "ABANDONED", "Partie abandonnée.")
+	resp := StateResponse(session, "ABANDONED", "Partie abandonnée.")
 	resp.Type = "BYE"
 	resp.SecretWord = session.SecretWord()
 	return resp
