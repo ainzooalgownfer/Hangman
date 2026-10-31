@@ -43,9 +43,10 @@ func TestConcurrentPlayers(t *testing.T) {
 				}
 			}
 
+			// The game is over (won or lost), so QUIT must be refused.
 			quit := d.Dispatch(protocol.CommandRequest{Action: "QUIT", SessionID: id})
-			if quit.Type != "BYE" {
-				results <- "quit failed: " + quit.Code
+			if quit.Code != "GAME_ALREADY_OVER" {
+				results <- "QUIT on a finished game: expected GAME_ALREADY_OVER, got " + quit.Type + " " + quit.Code
 				return
 			}
 			results <- "ok"

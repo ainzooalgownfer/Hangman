@@ -35,4 +35,4 @@ go.work.sum
 # Claude Code local settings
 .claude/
 
-TODO.txt
+PROGRESS.md

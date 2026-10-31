@@ -18,6 +18,7 @@ type StateSession interface {
 type GameState interface {
 	Guess(session StateSession, letter string) protocol.CommandResponse
 	GetStatus() string
+	Quit(session StateSession) protocol.CommandResponse
 }
 
 func stateResponse(session StateSession, status, message string) protocol.CommandResponse {
@@ -29,5 +30,14 @@ func stateResponse(session StateSession, status, message string) protocol.Comman
 		TriedLetters: session.TriedLetters(),
 		Status:       status,
 		Message:      message,
+	}
+}
+
+// gameOverError is the answer to any action on a game that is already finished.
+func gameOverError() protocol.CommandResponse {
+	return protocol.CommandResponse{
+		Type:    "ERROR",
+		Code:    "GAME_ALREADY_OVER",
+		Message: "La partie est terminée.",
 	}
 }

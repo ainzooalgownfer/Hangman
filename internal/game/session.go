@@ -43,6 +43,14 @@ func (s *GameSession) Guess(letter string) protocol.CommandResponse {
 	return s.currentState.Guess(s, letter)
 }
 
+func (s *GameSession) Quit() protocol.CommandResponse {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.lastActive = time.Now()
+	return s.currentState.Quit(s)
+
+}
+
 func (s *GameSession) SetState(state GameState) {
 	s.currentState = state
 }
@@ -58,7 +66,7 @@ func (s *GameSession) Snapshot() protocol.CommandResponse {
 	s.lastActive = time.Now()
 
 	resp := stateResponse(s, s.currentState.GetStatus(), "")
-	if resp.Status == "WON" || resp.Status == "LOST" {
+	if resp.Status == "WON" || resp.Status == "LOST" || resp.Status == "ABANDONED" {
 		resp.SecretWord = s.secretWord
 	}
 

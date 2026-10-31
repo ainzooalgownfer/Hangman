@@ -50,6 +50,14 @@ func (s *InProgressState) Guess(session StateSession, letter string) protocol.Co
 
 }
 
+func (s *InProgressState) Quit(session StateSession) protocol.CommandResponse {
+	session.SetState(&AbandonedState{})
+	resp := stateResponse(session, "ABANDONED", "Partie abandonnée.")
+	resp.Type = "BYE"
+	resp.SecretWord = session.SecretWord()
+	return resp
+}
+
 func (s *InProgressState) GetStatus() string {
 	return "IN_PROGRESS"
 }

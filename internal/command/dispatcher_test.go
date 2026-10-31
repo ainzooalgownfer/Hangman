@@ -136,9 +136,20 @@ func TestQuitHandler(t *testing.T) {
 		t.Error("expected the secret word to be revealed on quit")
 	}
 
-	// The game must be gone: RESUME on the same ID no longer finds it.
+	// The game is kept as ABANDONED: RESUME still shows it, with the word.
 	resAfter := d.Dispatch(protocol.CommandRequest{Action: "RESUME", SessionID: id})
-	if resAfter.Code != "SESSION_NOT_FOUND" {
-		t.Errorf("expected session removed after QUIT, got %+v", resAfter)
+	if resAfter.Type != "STATE" || resAfter.Status != "ABANDONED" {
+		t.Errorf("expected STATE ABANDONED on RESUME after QUIT, got %+v", resAfter)
+	}
+	if resAfter.SecretWord == "" {
+		t.Error("expected RESUME on an abandoned game to reveal the word")
+	}
+
+	// A finished game can't be quit or played again.
+	for _, action := range []string{"QUIT", "LETTER"} {
+		r := d.Dispatch(protocol.CommandRequest{Action: action, SessionID: id, Letter: "e"})
+		if r.Code != "GAME_ALREADY_OVER" {
+			t.Errorf("expected GAME_ALREADY_OVER for %s on an abandoned game, got %+v", action, r)
+		}
 	}
 }
