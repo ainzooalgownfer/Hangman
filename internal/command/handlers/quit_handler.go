@@ -12,7 +12,7 @@ func (h *QuitHandler) Handle(req protocol.CommandRequest) protocol.CommandRespon
 	if req.SessionID == "" {
 		return protocol.CommandResponse{
 			Type:    "ERROR",
-			Code:    "SESSION_NOT_FOUND",
+			Code:    "UNKNOWN_SESSION",
 			Message: "Identifiant de session manquant.",
 		}
 	}
@@ -21,11 +21,11 @@ func (h *QuitHandler) Handle(req protocol.CommandRequest) protocol.CommandRespon
 	if !ok {
 		return protocol.CommandResponse{
 			Type:    "ERROR",
-			Code:    "SESSION_NOT_FOUND",
+			Code:    "UNKNOWN_SESSION",
 			Message: "Session introuvable.",
 		}
 	}
 
-	return session.Quit()
+	return session.QuitOnce(req.RequestID, req.ConnID)
 
 }

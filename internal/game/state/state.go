@@ -38,7 +38,7 @@ func StateResponse(session StateSession, status, message string) protocol.Comman
 func gameOverError() protocol.CommandResponse {
 	return protocol.CommandResponse{
 		Type:    "ERROR",
-		Code:    "GAME_ALREADY_OVER",
+		Code:    "INVALID_STATE",
 		Message: "La partie est terminée.",
 	}
 }

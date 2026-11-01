@@ -36,3 +36,5 @@ go.work.sum
 .claude/
 
 PROGRESS.md
+# Built binaries
+bin/

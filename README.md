@@ -52,21 +52,27 @@ docker run --rm -p 8080:8080 \
 
 | Action | Fields | Response |
 | --- | --- | --- |
-| `NEW_GAME` | `player` | `STATE` |
+| `NEW_GAME` | `player` | `STATE` + `resume_token` (only here) |
 | `LETTER` | `session_id`, `letter` | `STATE` (`IN_PROGRESS`, `WON`, `LOST`) |
-| `RESUME` | `session_id` | `STATE` |
+| `RESUME` | `session_id`, `resume_token` | `STATE`; the game moves to this connection |
 | `QUIT` | `session_id` | `BYE` (`ABANDONED`, `secret_word`), then the connection closes |
+
+Every request may carry a `request_id` (an integer ≥ 1, new for each request). It is echoed in the response. If the last `LETTER` or `QUIT` is sent again with the same `request_id`, the server sends back the same answer with `"replayed": true` instead of playing it twice.
+
+A game belongs to the connection that created or resumed it. `LETTER` and `QUIT` from another connection are refused.
 
 Errors: `{"type":"ERROR","code":"...","message":"..."}`
 
 | Code | When |
 | --- | --- |
-| `INVALID_FORMAT` | invalid JSON or missing `player` |
+| `INVALID_MESSAGE` | invalid JSON, line too long, or missing `player` |
 | `UNKNOWN_ACTION` | unknown action |
-| `SESSION_NOT_FOUND` | missing or unknown `session_id` |
+| `UNKNOWN_SESSION` | missing, unknown or expired `session_id` |
+| `PLAYER_NOT_ALLOWED` | wrong `resume_token`, or the game belongs to another connection |
 | `INVALID_LETTER` | not a single letter |
 | `ALREADY_GUESSED` | letter already guessed |
-| `GAME_ALREADY_OVER` | game already won or lost |
+| `INVALID_STATE` | `LETTER` or `QUIT` on a game already won, lost or abandoned |
+| `TIMEOUT` | no message for `idle_timeout`; the connection then closes |
 
 ## Structure
 

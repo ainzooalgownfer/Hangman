@@ -38,8 +38,8 @@ func TestWinGame(t *testing.T) {
 
 	// A finished game rejects any further guess.
 	resp = s.Guess("z")
-	if resp.Type != "ERROR" || resp.Code != "GAME_ALREADY_OVER" {
-		t.Errorf("expected ERROR GAME_ALREADY_OVER after win, got type=%s code=%s", resp.Type, resp.Code)
+	if resp.Type != "ERROR" || resp.Code != "INVALID_STATE" {
+		t.Errorf("expected ERROR INVALID_STATE after win, got type=%s code=%s", resp.Type, resp.Code)
 	}
 }
 
@@ -63,8 +63,8 @@ func TestLoseGame(t *testing.T) {
 	}
 
 	resp = s.Guess("c")
-	if resp.Type != "ERROR" || resp.Code != "GAME_ALREADY_OVER" {
-		t.Errorf("expected ERROR GAME_ALREADY_OVER after loss, got type=%s code=%s", resp.Type, resp.Code)
+	if resp.Type != "ERROR" || resp.Code != "INVALID_STATE" {
+		t.Errorf("expected ERROR INVALID_STATE after loss, got type=%s code=%s", resp.Type, resp.Code)
 	}
 }
 

@@ -8,13 +8,22 @@ import (
 	"time"
 )
 
+// pipe returns both ends of an in-memory connection, closed when the test ends.
+func pipe(t *testing.T) (serverSide, clientSide net.Conn) {
+	t.Helper()
+	serverSide, clientSide = net.Pipe()
+	t.Cleanup(func() {
+		_ = serverSide.Close()
+		_ = clientSide.Close()
+	})
+	return serverSide, clientSide
+}
+
 func TestReadCommand_Valid(t *testing.T) {
-	serverSide, clientSide := net.Pipe()
-	defer serverSide.Close()
-	defer clientSide.Close()
+	serverSide, clientSide := pipe(t)
 
 	go func() {
-		clientSide.Write([]byte(`{"action":"NEW_GAME","player":"Bob"}` + "\n"))
+		_, _ = clientSide.Write([]byte(`{"action":"NEW_GAME","player":"Bob"}` + "\n"))
 	}()
 
 	conn := NewClientConnection(serverSide, 4096, time.Second)
@@ -30,12 +39,10 @@ func TestReadCommand_Valid(t *testing.T) {
 }
 
 func TestReadCommand_InValid(t *testing.T) {
-	serverSide, clientSide := net.Pipe()
-	defer serverSide.Close()
-	defer clientSide.Close()
+	serverSide, clientSide := pipe(t)
 
 	go func() {
-		clientSide.Write([]byte(`{"action":"NEW_GAME" Bad JSON "player":"Alice" ` + "\n"))
+		_, _ = clientSide.Write([]byte(`{"action":"NEW_GAME" Bad JSON "player":"Alice" ` + "\n"))
 	}()
 
 	conn := NewClientConnection(serverSide, 4096, time.Second)
@@ -52,12 +59,10 @@ func TestReadCommand_InValid(t *testing.T) {
 }
 
 func TestReadCommand_TooLong(t *testing.T) {
-	serverSide, clientSide := net.Pipe()
-	defer serverSide.Close()
-	defer clientSide.Close()
+	serverSide, clientSide := pipe(t)
 
 	go func() {
-		clientSide.Write([]byte(`{"action":"NEW_GAME","player":"a very long name"}` + "\n"))
+		_, _ = clientSide.Write([]byte(`{"action":"NEW_GAME","player":"a very long name"}` + "\n"))
 	}()
 
 	conn := NewClientConnection(serverSide, 16, time.Second)

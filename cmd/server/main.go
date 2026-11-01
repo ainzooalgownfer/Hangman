@@ -53,8 +53,8 @@ func main() {
 	select {
 	case <-ctx.Done():
 		slog.Info("Shutting down")
-		server.Stop()
-		<-errCh //waits for that return, so you don’t exit while the server is still mid-shutdown.
+		_ = server.Stop() // we're exiting anyway
+		_ = <-errCh       // waits for that return, so you don't exit while the server is still mid-shutdown
 	case err := <-errCh:
 		if err != nil {
 			slog.Error("server stopped", "err", err)

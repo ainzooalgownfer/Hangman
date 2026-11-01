@@ -15,7 +15,7 @@ func (h *GuessLetterHandler) Handle(req protocol.CommandRequest) protocol.Comman
 	if req.SessionID == "" {
 		return protocol.CommandResponse{
 			Type:    "ERROR",
-			Code:    "SESSION_NOT_FOUND",
+			Code:    "UNKNOWN_SESSION",
 			Message: "Identifiant de session manquant.",
 		}
 	}
@@ -42,11 +42,11 @@ func (h *GuessLetterHandler) Handle(req protocol.CommandRequest) protocol.Comman
 	if !ok {
 		return protocol.CommandResponse{
 			Type:    "ERROR",
-			Code:    "SESSION_NOT_FOUND",
+			Code:    "UNKNOWN_SESSION",
 			Message: "Session introuvable",
 		}
 	}
 
-	return session.Guess(trimmed)
+	return session.GuessOnce(req.RequestID, req.ConnID, trimmed)
 
 }

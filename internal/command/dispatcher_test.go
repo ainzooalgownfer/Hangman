@@ -31,8 +31,8 @@ func TestNewGameHandler(t *testing.T) {
 
 	// Missing player
 	resEmpty := d.Dispatch(protocol.CommandRequest{Action: "NEW_GAME"})
-	if resEmpty.Type != "ERROR" || resEmpty.Code != "INVALID_FORMAT" {
-		t.Errorf("expected INVALID_FORMAT on missing player, got code=%s", resEmpty.Code)
+	if resEmpty.Type != "ERROR" || resEmpty.Code != "INVALID_MESSAGE" {
+		t.Errorf("expected INVALID_MESSAGE on missing player, got code=%s", resEmpty.Code)
 	}
 
 	// Valid player
@@ -47,8 +47,8 @@ func TestGuessLetterHandler(t *testing.T) {
 
 	// Missing session_id
 	resNoSession := d.Dispatch(protocol.CommandRequest{Action: "LETTER", Letter: "E"})
-	if resNoSession.Type != "ERROR" || resNoSession.Code != "SESSION_NOT_FOUND" {
-		t.Errorf("expected SESSION_NOT_FOUND, got %s", resNoSession.Code)
+	if resNoSession.Type != "ERROR" || resNoSession.Code != "UNKNOWN_SESSION" {
+		t.Errorf("expected UNKNOWN_SESSION, got %s", resNoSession.Code)
 	}
 
 	// Invalid character (checked before the lookup, so the ID doesn't matter)
@@ -67,8 +67,8 @@ func TestGuessLetterHandler(t *testing.T) {
 		SessionID: "unknown-id",
 		Letter:    "e",
 	})
-	if resUnknown.Type != "ERROR" || resUnknown.Code != "SESSION_NOT_FOUND" {
-		t.Errorf("expected SESSION_NOT_FOUND for unknown id, got %+v", resUnknown)
+	if resUnknown.Type != "ERROR" || resUnknown.Code != "UNKNOWN_SESSION" {
+		t.Errorf("expected UNKNOWN_SESSION for unknown id, got %+v", resUnknown)
 	}
 
 	// Valid guess: create a real game first, then play on it
@@ -115,8 +115,8 @@ func TestQuitHandler(t *testing.T) {
 	d := setupDispatcher()
 
 	resUnknown := d.Dispatch(protocol.CommandRequest{Action: "QUIT", SessionID: "unknown-id"})
-	if resUnknown.Type != "ERROR" || resUnknown.Code != "SESSION_NOT_FOUND" {
-		t.Errorf("expected SESSION_NOT_FOUND for unknown id, got %+v", resUnknown)
+	if resUnknown.Type != "ERROR" || resUnknown.Code != "UNKNOWN_SESSION" {
+		t.Errorf("expected UNKNOWN_SESSION for unknown id, got %+v", resUnknown)
 	}
 
 	newGame := d.Dispatch(protocol.CommandRequest{Action: "NEW_GAME", Player: "Alice"})
@@ -137,7 +137,7 @@ func TestQuitHandler(t *testing.T) {
 	}
 
 	// The game is kept as ABANDONED: RESUME still shows it, with the word.
-	resAfter := d.Dispatch(protocol.CommandRequest{Action: "RESUME", SessionID: id})
+	resAfter := d.Dispatch(protocol.CommandRequest{Action: "RESUME", SessionID: id, ResumeToken: newGame.ResumeToken})
 	if resAfter.Type != "STATE" || resAfter.Status != "ABANDONED" {
 		t.Errorf("expected STATE ABANDONED on RESUME after QUIT, got %+v", resAfter)
 	}
@@ -148,8 +148,8 @@ func TestQuitHandler(t *testing.T) {
 	// A finished game can't be quit or played again.
 	for _, action := range []string{"QUIT", "LETTER"} {
 		r := d.Dispatch(protocol.CommandRequest{Action: action, SessionID: id, Letter: "e"})
-		if r.Code != "GAME_ALREADY_OVER" {
-			t.Errorf("expected GAME_ALREADY_OVER for %s on an abandoned game, got %+v", action, r)
+		if r.Code != "INVALID_STATE" {
+			t.Errorf("expected INVALID_STATE for %s on an abandoned game, got %+v", action, r)
 		}
 	}
 }

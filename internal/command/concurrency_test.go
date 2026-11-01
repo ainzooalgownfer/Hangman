@@ -45,8 +45,8 @@ func TestConcurrentPlayers(t *testing.T) {
 
 			// The game is over (won or lost), so QUIT must be refused.
 			quit := d.Dispatch(protocol.CommandRequest{Action: "QUIT", SessionID: id})
-			if quit.Code != "GAME_ALREADY_OVER" {
-				results <- "QUIT on a finished game: expected GAME_ALREADY_OVER, got " + quit.Type + " " + quit.Code
+			if quit.Code != "INVALID_STATE" {
+				results <- "QUIT on a finished game: expected INVALID_STATE, got " + quit.Type + " " + quit.Code
 				return
 			}
 			results <- "ok"
@@ -92,7 +92,7 @@ func TestConcurrentGuessesSameSession(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			d.Dispatch(protocol.CommandRequest{Action: "RESUME", SessionID: id})
+			d.Dispatch(protocol.CommandRequest{Action: "RESUME", SessionID: id, ResumeToken: newGame.ResumeToken})
 		}()
 	}
 	wg.Wait()
@@ -103,14 +103,14 @@ func TestConcurrentGuessesSameSession(t *testing.T) {
 		switch {
 		case resp.Type == "STATE":
 			accepted++
-		case resp.Code == "ALREADY_GUESSED", resp.Code == "GAME_ALREADY_OVER":
+		case resp.Code == "ALREADY_GUESSED", resp.Code == "INVALID_STATE":
 			// expected under contention
 		default:
 			t.Errorf("unexpected response: %+v", resp)
 		}
 	}
 
-	final := d.Dispatch(protocol.CommandRequest{Action: "RESUME", SessionID: id})
+	final := d.Dispatch(protocol.CommandRequest{Action: "RESUME", SessionID: id, ResumeToken: newGame.ResumeToken})
 	tried := final.TriedLetters
 
 	// Every accepted guess recorded exactly once, never twice.

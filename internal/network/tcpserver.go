@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"sync/atomic"
 
 	"log/slog"
 	"net"
@@ -22,6 +23,7 @@ type TCPServer struct {
 	idleTimeout time.Duration
 	listener    net.Listener
 	dispatcher  *command.CommandDispatcher
+	nextConnID  atomic.Int64
 }
 
 func NewTCPServer(address string, maxLineSize int, idleTimeout time.Duration, dispatcher *command.CommandDispatcher) *TCPServer {
@@ -67,8 +69,9 @@ func (s *TCPServer) Stop() error {
 
 func (s *TCPServer) handleConnection(conn net.Conn) {
 	client := NewClientConnection(conn, s.maxLineSize, s.idleTimeout)
-	defer client.Close()
+	defer func() { _ = client.Close() }() // the connection is ending: nothing to do if Close fails
 
+	connID := s.nextConnID.Add(1)
 	remote := conn.RemoteAddr().String()
 	slog.Info("client connected", "remote", remote)
 	defer slog.Info("client disconnected", "remote", remote)
@@ -81,7 +84,7 @@ func (s *TCPServer) handleConnection(conn net.Conn) {
 			slog.Warn("invalid request", "remote", remote, "err", err)
 			if err := client.SendResponse(protocol.CommandResponse{
 				Type:    "ERROR",
-				Code:    "INVALID_FORMAT",
+				Code:    "INVALID_MESSAGE",
 				Message: "Requête JSON invalide.",
 			}); err != nil {
 				return
@@ -92,16 +95,17 @@ func (s *TCPServer) handleConnection(conn net.Conn) {
 			switch {
 			case errors.Is(err, os.ErrDeadlineExceeded):
 				slog.Warn("idle timeout", "remote", remote)
-				client.SendResponse(protocol.CommandResponse{
+
+				_ = client.SendResponse(protocol.CommandResponse{
 					Type:    "ERROR",
 					Code:    "TIMEOUT",
 					Message: "Délai d'inactivité dépassé.",
 				})
 			case errors.Is(err, bufio.ErrTooLong):
 				slog.Warn("message too long", "remote", remote)
-				client.SendResponse(protocol.CommandResponse{
+				_ = client.SendResponse(protocol.CommandResponse{
 					Type:    "ERROR",
-					Code:    "INVALID_FORMAT",
+					Code:    "INVALID_MESSAGE",
 					Message: "Message trop long.",
 				})
 			}
@@ -109,7 +113,9 @@ func (s *TCPServer) handleConnection(conn net.Conn) {
 		}
 
 		start := time.Now()
+		req.ConnID = connID
 		resp := s.dispatcher.Dispatch(req)
+		resp.RequestID = req.RequestID
 
 		session := resp.SessionID
 		if session == "" {
@@ -117,6 +123,7 @@ func (s *TCPServer) handleConnection(conn net.Conn) {
 		}
 		slog.Info("request",
 			"remote", remote,
+			"connID", req.ConnID,
 			"action", req.Action,
 			"session", session,
 			"type", resp.Type,

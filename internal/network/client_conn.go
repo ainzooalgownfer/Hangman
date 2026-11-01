@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-var ErrInvalidFormat = errors.New("INVALID_FORMAT")
+var ErrInvalidFormat = errors.New("INVALID_MESSAGE")
 
 type ClientConnection struct {
 	conn        net.Conn
