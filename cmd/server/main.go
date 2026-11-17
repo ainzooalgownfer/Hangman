@@ -1,3 +1,4 @@
+//nolint:errcheck
 package main
 
 import (
@@ -44,6 +45,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	//gracefull shutdown
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
@@ -53,8 +55,8 @@ func main() {
 	select {
 	case <-ctx.Done():
 		slog.Info("Shutting down")
-		_ = server.Stop() // we're exiting anyway
-		_ = <-errCh       // waits for that return, so you don't exit while the server is still mid-shutdown
+		server.Stop() // we're exiting anyway
+		<-errCh       // waits for that return, so we don't exit while the server is still mid-shutdown
 	case err := <-errCh:
 		if err != nil {
 			slog.Error("server stopped", "err", err)

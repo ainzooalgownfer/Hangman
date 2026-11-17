@@ -38,3 +38,5 @@ go.work.sum
 PROGRESS.md
 # Built binaries
 bin/
+STUDY.md
+.graffiti/

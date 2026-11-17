@@ -34,7 +34,7 @@ func StateResponse(session StateSession, status, message string) protocol.Comman
 	}
 }
 
-// gameOverError is the answer to any action on a game that is already finished.
+
 func gameOverError() protocol.CommandResponse {
 	return protocol.CommandResponse{
 		Type:    "ERROR",

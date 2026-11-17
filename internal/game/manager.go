@@ -50,9 +50,8 @@ func (m *SessionManager) RemoveExpired(now time.Time, ttl time.Duration) int {
 }
 
 func (m *SessionManager) StartJanitor(ttl, interval time.Duration) (stop func()) {
-	// chan is a typed pipe that go routines uses it to pass data or read safely
-	done := make(chan struct{})
 
+	done := make(chan struct{})
 	go func() {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()

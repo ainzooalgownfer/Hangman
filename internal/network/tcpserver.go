@@ -69,7 +69,7 @@ func (s *TCPServer) Stop() error {
 
 func (s *TCPServer) handleConnection(conn net.Conn) {
 	client := NewClientConnection(conn, s.maxLineSize, s.idleTimeout)
-	defer func() { _ = client.Close() }() // the connection is ending: nothing to do if Close fails
+	defer func() { _ = client.Close() }()
 
 	connID := s.nextConnID.Add(1)
 	remote := conn.RemoteAddr().String()

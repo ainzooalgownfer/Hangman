@@ -31,6 +31,7 @@ func NewClientConnection(conn net.Conn, maxLineSize int, idleTimeout time.Durati
 }
 
 // ReadCommand reads one line up to '\n' and unmarshals it into CommandRequest
+// bufio.scanner it defaults to new line \n
 func (c *ClientConnection) ReadCommand() (protocol.CommandRequest, error) {
 
 	// The deadline is reset before every read, so it is an *idle* timeout.

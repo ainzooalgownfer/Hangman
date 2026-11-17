@@ -1,7 +1,7 @@
 # Network
-address: ":8080"            # host:port to listen on (":8080" = all interfaces)
+address: ":8080"            # host:port 
 max_line_size: 4096         # max bytes per JSON line; longer lines close the connection
-idle_timeout: 5m            # closes a connection after this long with no message
+idle_timeout: 5m            # closes a connection 
 
 # Game
 max_attempts: 10            # wrong guesses allowed before the game is lost

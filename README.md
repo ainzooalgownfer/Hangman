@@ -249,9 +249,6 @@ Done:
 TODO:
 
 - SQLite persistence
-- Check that a session belongs to the connection using it
-- Expire abandoned sessions
-- Graceful shutdown
-- Config tests (config_test.go)
+- Chat and rooms PVP
 - ResponseFactory
 - Leaderboard
