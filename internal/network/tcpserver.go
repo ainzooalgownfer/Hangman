@@ -2,6 +2,7 @@ package network
 
 import (
 	"bufio"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"sync/atomic"
@@ -24,24 +25,33 @@ type TCPServer struct {
 	listener    net.Listener
 	dispatcher  *command.CommandDispatcher
 	nextConnID  atomic.Int64
+	tlsConfig   *tls.Config
 }
 
-func NewTCPServer(address string, maxLineSize int, idleTimeout time.Duration, dispatcher *command.CommandDispatcher) *TCPServer {
+func NewTCPServer(address string, maxLineSize int,
+	idleTimeout time.Duration,
+	dispatcher *command.CommandDispatcher, tlsConfig *tls.Config) *TCPServer {
 	return &TCPServer{
 		address:     address,
 		maxLineSize: maxLineSize,
 		idleTimeout: idleTimeout,
 		dispatcher:  dispatcher,
+		tlsConfig:   tlsConfig,
 	}
 }
 
 func (s *TCPServer) Start() error {
 	var err error
-	s.listener, err = net.Listen("tcp", s.address)
+	// A TLS listener hands out *tls.Conn, which is still a net.Conn: handleConnection doesn't change.
+	if s.tlsConfig != nil {
+		s.listener, err = tls.Listen("tcp", s.address, s.tlsConfig)
+	} else {
+		s.listener, err = net.Listen("tcp", s.address)
+	}
 	if err != nil {
 		return fmt.Errorf("impossible d'écouter sur %s: %w", s.address, err)
 	}
-	slog.Info("server listening", "address", s.address)
+	slog.Info("server listening", "address", s.address, "tls", s.tlsConfig != nil)
 	return nil
 
 }

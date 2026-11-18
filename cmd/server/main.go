@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -24,8 +25,23 @@ func main() {
 		os.Exit(1)
 	}
 
+	// nil = no TLS.
+	var tlsConfig *tls.Config
+	if cfg.TLSCert != "" {
+		cert, err := tls.LoadX509KeyPair(cfg.TLSCert, cfg.TLSKey)
+		if err != nil {
+			slog.Error("failed to load TLS certificate", "err", err)
+			os.Exit(1)
+		}
+		tlsConfig = &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			MinVersion:   tls.VersionTLS12,
+		}
+	}
+
 	slog.Info("config loaded",
 		"address", cfg.Address,
+		"tls", tlsConfig != nil,
 		"max_attempts", cfg.MaxAttempts,
 		"idle_timeout", cfg.IdleTimeout,
 		"session_ttl", cfg.SessionTTL,
@@ -39,7 +55,7 @@ func main() {
 	stop := store.StartJanitor(cfg.SessionTTL, 30*time.Second)
 	defer stop()
 
-	server := network.NewTCPServer(cfg.Address, cfg.MaxLineSize, cfg.IdleTimeout, dispatcher)
+	server := network.NewTCPServer(cfg.Address, cfg.MaxLineSize, cfg.IdleTimeout, dispatcher, tlsConfig)
 	if err := server.Start(); err != nil {
 		slog.Error("cannot listen", "err", err)
 		os.Exit(1)

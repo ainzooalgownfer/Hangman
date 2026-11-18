@@ -20,6 +20,8 @@ type Config struct {
 	SessionTTL  time.Duration `yaml:"session_time_to_live"`
 	WordsPath   string        `yaml:"words_path"`
 	Words       []string      `yaml:"words"`
+	TLSCert     string        `yaml:"tls_cert"`
+	TLSKey      string        `yaml:"tls_key"`
 }
 
 func Default() Config {
@@ -100,6 +102,9 @@ func (c Config) validate() error {
 	}
 	if len(c.Words) == 0 {
 		return errors.New("word list must not be empty")
+	}
+	if (c.TLSCert == "") != (c.TLSKey == "") {
+		return errors.New("tls_cert and tls_key must both be set, or both be empty")
 	}
 	for i, w := range c.Words {
 		if w == "" {
