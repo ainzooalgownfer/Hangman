@@ -47,6 +47,10 @@ func (h *GuessLetterHandler) Handle(req protocol.CommandRequest) protocol.Comman
 		}
 	}
 
+	if !validSig(session.ResumeToken(), req) {
+		return inValidSig()
+	}
+
 	return session.GuessOnce(req.RequestID, req.ConnID, trimmed)
 
 }

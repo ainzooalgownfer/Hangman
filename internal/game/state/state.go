@@ -34,7 +34,6 @@ func StateResponse(session StateSession, status, message string) protocol.Comman
 	}
 }
 
-
 func gameOverError() protocol.CommandResponse {
 	return protocol.CommandResponse{
 		Type:    "ERROR",

@@ -24,6 +24,7 @@ type GameSession struct {
 	lastActive    time.Time
 	resumeToken   string
 	lastRequestID int64
+	maxRequestID  int64
 	lastResponse  protocol.CommandResponse
 	owner         int64 // the connection currently allowed to play this game
 
@@ -101,6 +102,11 @@ func (s *GameSession) GetState() string {
 func (s *GameSession) Snapshot() protocol.CommandResponse {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.snapshot()
+}
+
+// snapshot builds the current state. Caller holds s.mu.
+func (s *GameSession) snapshot() protocol.CommandResponse {
 	s.lastActive = time.Now()
 
 	resp := state.StateResponse(s, s.currentState.GetStatus(), "")
@@ -185,6 +191,7 @@ func (s *GameSession) remember(requestID int64, resp protocol.CommandResponse) {
 	if requestID != 0 {
 		s.lastRequestID = requestID
 		s.lastResponse = resp
+		s.maxRequestID = max(s.maxRequestID, s.lastRequestID)
 	}
 }
 
@@ -194,4 +201,22 @@ func notOwnerError() protocol.CommandResponse {
 		Code:    "PLAYER_NOT_ALLOWED",
 		Message: "Cette partie est jouée depuis une autre connexion.",
 	}
+}
+
+// ResumeOnce hands the game to connID. requestID must be higher than every
+// request_id seen on this session, so a captured RESUME can't be sent again.
+func (s *GameSession) ResumeOnce(requestID, connID int64) protocol.CommandResponse {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if requestID <= s.maxRequestID {
+		return protocol.CommandResponse{
+			Type:    "ERROR",
+			Code:    "PLAYER_NOT_ALLOWED",
+			Message: "Requête de reprise déjà utilisée.",
+		}
+	}
+	s.maxRequestID = requestID
+	s.owner = connID
+	return s.snapshot()
 }

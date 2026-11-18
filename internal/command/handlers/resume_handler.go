@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"crypto/subtle"
 	"hangman/internal/protocol"
 )
 
@@ -27,17 +26,14 @@ func (h *ResumeHandler) Handle(req protocol.CommandRequest) protocol.CommandResp
 		}
 	}
 
-	validToken := subtle.ConstantTimeCompare([]byte(req.ResumeToken), []byte(session.ResumeToken()))
-	if validToken != 1 {
-		return protocol.CommandResponse{
-			Type:    "ERROR",
-			Code:    "PLAYER_NOT_ALLOWED",
-			Message: "Jeton de reprise invalide.",
-		}
+	if !validSig(session.ResumeToken(), req) {
+		return inValidSig()
 	}
 
-	session.Claim(req.ConnID)
-	resp := session.Snapshot()
+	resp := session.ResumeOnce(req.RequestID, req.ConnID)
+	if resp.Type == "ERROR" {
+		return resp
+	}
 	resp.Message = "Session reprise avec succès."
 
 	return resp

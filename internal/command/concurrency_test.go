@@ -33,7 +33,7 @@ func TestConcurrentPlayers(t *testing.T) {
 			}
 
 			for _, l := range []string{"e", "a", "r", "o", "i", "t", "n", "s", "l", "c", "u", "d", "p", "m", "h", "g", "b", "f", "y", "w", "k", "v", "x", "z", "j", "q"} {
-				resp := d.Dispatch(protocol.CommandRequest{Action: "LETTER", SessionID: id, Letter: l})
+				resp := d.Dispatch(signed(protocol.CommandRequest{Action: "LETTER", SessionID: id, Letter: l}, newGame.ResumeToken))
 				if resp.Type == "ERROR" {
 					results <- "unexpected error: " + resp.Code
 					return
@@ -44,7 +44,7 @@ func TestConcurrentPlayers(t *testing.T) {
 			}
 
 			// The game is over (won or lost), so QUIT must be refused.
-			quit := d.Dispatch(protocol.CommandRequest{Action: "QUIT", SessionID: id})
+			quit := d.Dispatch(signed(protocol.CommandRequest{Action: "QUIT", SessionID: id}, newGame.ResumeToken))
 			if quit.Code != "INVALID_STATE" {
 				results <- "QUIT on a finished game: expected INVALID_STATE, got " + quit.Type + " " + quit.Code
 				return
@@ -82,17 +82,18 @@ func TestConcurrentGuessesSameSession(t *testing.T) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				responses <- d.Dispatch(protocol.CommandRequest{Action: "LETTER", SessionID: id, Letter: l})
+				responses <- d.Dispatch(signed(protocol.CommandRequest{Action: "LETTER", SessionID: id, Letter: l}, newGame.ResumeToken))
 			}()
 		}
 	}
 
 	// RESUME readers running at the same time as the guesses.
-	for range 20 {
+	// They may arrive out of order, so some are refused: only the result of the final RESUME is checked.
+	for i := range 20 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			d.Dispatch(protocol.CommandRequest{Action: "RESUME", SessionID: id, ResumeToken: newGame.ResumeToken})
+			d.Dispatch(signed(protocol.CommandRequest{Action: "RESUME", SessionID: id, RequestID: int64(i + 1)}, newGame.ResumeToken))
 		}()
 	}
 	wg.Wait()
@@ -110,7 +111,7 @@ func TestConcurrentGuessesSameSession(t *testing.T) {
 		}
 	}
 
-	final := d.Dispatch(protocol.CommandRequest{Action: "RESUME", SessionID: id, ResumeToken: newGame.ResumeToken})
+	final := d.Dispatch(signed(protocol.CommandRequest{Action: "RESUME", SessionID: id, RequestID: 100}, newGame.ResumeToken))
 	tried := final.TriedLetters
 
 	// Every accepted guess recorded exactly once, never twice.

@@ -26,6 +26,10 @@ func (h *QuitHandler) Handle(req protocol.CommandRequest) protocol.CommandRespon
 		}
 	}
 
+	if !validSig(session.ResumeToken(), req) {
+		return inValidSig()
+	}
+
 	return session.QuitOnce(req.RequestID, req.ConnID)
 
 }

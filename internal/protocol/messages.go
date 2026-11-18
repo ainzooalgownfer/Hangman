@@ -1,14 +1,13 @@
 package protocol
 
 type CommandRequest struct {
-	Action      string `json:"action"`
-	Player      string `json:"player,omitempty"`
-	SessionID   string `json:"session_id,omitempty"`
-	Letter      string `json:"letter,omitempty"`
-	ResumeToken string `json:"resume_token,omitempty"`
-	RequestID   int64  `json:"request_id,omitempty"`
-	ConnID      int64  `json:"-"` // set by the server: which connection sent this request
-
+	Action    string `json:"action"`
+	Player    string `json:"player,omitempty"`
+	SessionID string `json:"session_id,omitempty"`
+	Letter    string `json:"letter,omitempty"`
+	RequestID int64  `json:"request_id,omitempty"`
+	ConnID    int64  `json:"-"` // set by the server: which connection sent this request
+	Sig       string `json:"sig,omitempty"`
 }
 
 type CommandResponse struct {
