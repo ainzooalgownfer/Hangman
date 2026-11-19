@@ -27,7 +27,8 @@ type GameSession struct {
 	maxRequestID  int64
 	lastResponse  protocol.CommandResponse
 	owner         int64 // the connection currently allowed to play this game
-
+	deadline      time.Time
+	timeUp        bool
 }
 
 // GameSession is what the states act on, through the state.StateSession interface.
@@ -63,8 +64,10 @@ func (s *GameSession) GuessOnce(requestID, connID int64, letter string) protocol
 	if resp, ok := s.replay(requestID); ok {
 		return resp
 	}
+	s.expireIfTimeUp()
 	s.lastActive = time.Now()
 	resp := s.currentState.Guess(s, letter)
+	resp = s.withClock(resp) // time_left_ms / reason
 	s.remember(requestID, resp)
 	return resp
 }
@@ -84,8 +87,10 @@ func (s *GameSession) QuitOnce(requestID, connID int64) protocol.CommandResponse
 	if resp, ok := s.replay(requestID); ok {
 		return resp
 	}
+	s.expireIfTimeUp()
 	s.lastActive = time.Now()
 	resp := s.currentState.Quit(s)
+	resp = s.withClock(resp)
 	s.remember(requestID, resp)
 	return resp
 }
@@ -107,6 +112,7 @@ func (s *GameSession) Snapshot() protocol.CommandResponse {
 
 // snapshot builds the current state. Caller holds s.mu.
 func (s *GameSession) snapshot() protocol.CommandResponse {
+	s.expireIfTimeUp()
 	s.lastActive = time.Now()
 
 	resp := state.StateResponse(s, s.currentState.GetStatus(), "")
@@ -114,7 +120,7 @@ func (s *GameSession) snapshot() protocol.CommandResponse {
 		resp.SecretWord = s.secretWord
 	}
 
-	return resp
+	return s.withClock(resp)
 }
 
 func (s *GameSession) ID() string             { return s.id }
@@ -219,4 +225,40 @@ func (s *GameSession) ResumeOnce(requestID, connID int64) protocol.CommandRespon
 	s.maxRequestID = requestID
 	s.owner = connID
 	return s.snapshot()
+}
+
+func (s *GameSession) StartTimer(limit time.Duration) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if limit > 0 {
+		s.deadline = time.Now().Add(limit)
+	}
+}
+
+func (s *GameSession) expireIfTimeUp() {
+	if s.deadline.IsZero() {
+		return //no timer for this game
+	}
+	if time.Now().Before(s.deadline) {
+		return //still time left
+	}
+	if s.currentState.GetStatus() != "IN_PROGRESS" {
+		return // already won, lost or abandoned: the clock no longer matters
+	}
+	s.currentState = &state.LostState{}
+	s.timeUp = true
+}
+
+func (s *GameSession) withClock(resp protocol.CommandResponse) protocol.CommandResponse {
+	if s.deadline.IsZero() {
+		return resp
+	}
+	if resp.Status == "IN_PROGRESS" {
+		resp.TimeLeftMs = time.Until(s.deadline).Milliseconds()
+	}
+	if resp.Status == "LOST" && s.timeUp {
+		resp.Reason = "TIME_UP"
+	}
+	return resp
 }

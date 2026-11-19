@@ -43,6 +43,7 @@ func main() {
 		"address", cfg.Address,
 		"tls", tlsConfig != nil,
 		"max_attempts", cfg.MaxAttempts,
+		"game_limit_time", cfg.GameTimeLimit,
 		"idle_timeout", cfg.IdleTimeout,
 		"session_ttl", cfg.SessionTTL,
 		"words", len(cfg.Words),
@@ -50,7 +51,7 @@ func main() {
 
 	store := game.NewSessionManager()
 	dispatcher := command.NewCommandDispatcher()
-	handlers.RegisterAll(dispatcher, store, cfg.MaxAttempts, cfg.Words)
+	handlers.RegisterAll(dispatcher, store, cfg.MaxAttempts, cfg.GameTimeLimit, cfg.Words)
 
 	stop := store.StartJanitor(cfg.SessionTTL, 30*time.Second)
 	defer stop()

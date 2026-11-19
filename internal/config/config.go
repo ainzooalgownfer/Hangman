@@ -13,15 +13,16 @@ import (
 )
 
 type Config struct {
-	Address     string        `yaml:"address"`
-	MaxLineSize int           `yaml:"max_line_size"`
-	IdleTimeout time.Duration `yaml:"idle_timeout"`
-	MaxAttempts int           `yaml:"max_attempts"`
-	SessionTTL  time.Duration `yaml:"session_time_to_live"`
-	WordsPath   string        `yaml:"words_path"`
-	Words       []string      `yaml:"words"`
-	TLSCert     string        `yaml:"tls_cert"`
-	TLSKey      string        `yaml:"tls_key"`
+	Address       string        `yaml:"address"`
+	MaxLineSize   int           `yaml:"max_line_size"`
+	IdleTimeout   time.Duration `yaml:"idle_timeout"`
+	MaxAttempts   int           `yaml:"max_attempts"`
+	SessionTTL    time.Duration `yaml:"session_time_to_live"`
+	WordsPath     string        `yaml:"words_path"`
+	Words         []string      `yaml:"words"`
+	TLSCert       string        `yaml:"tls_cert"`
+	TLSKey        string        `yaml:"tls_key"`
+	GameTimeLimit time.Duration `yaml:"game_time_limit"`
 }
 
 func Default() Config {
@@ -105,6 +106,9 @@ func (c Config) validate() error {
 	}
 	if (c.TLSCert == "") != (c.TLSKey == "") {
 		return errors.New("tls_cert and tls_key must both be set, or both be empty")
+	}
+	if c.GameTimeLimit < 0 {
+		return errors.New("GAME Time Limit must be positive")
 	}
 	for i, w := range c.Words {
 		if w == "" {

@@ -2,6 +2,7 @@ package command_test
 
 import (
 	"testing"
+	"time"
 
 	"hangman/internal/auth"
 	"hangman/internal/command"
@@ -11,9 +12,13 @@ import (
 )
 
 func setupDispatcher() *command.CommandDispatcher {
+	return setupDispatcherWithTimer(0) // 0 = no timer
+}
+
+func setupDispatcherWithTimer(limit time.Duration) *command.CommandDispatcher {
 	store := game.NewSessionManager()
 	d := command.NewCommandDispatcher()
-	handlers.RegisterAll(d, store, 6, []string{"chat", "pomme", "robot"})
+	handlers.RegisterAll(d, store, 6, limit, []string{"chat", "pomme", "robot"})
 	return d
 }
 
@@ -210,5 +215,36 @@ func TestResumeReplayRejected(t *testing.T) {
 	}
 	if r := resume(6); r.Type != "STATE" {
 		t.Errorf("RESUME with a new request_id: expected STATE, got %+v", r)
+	}
+}
+
+// TestStatusHandler checks STATUS: it needs a signature, returns the state
+// with time_left_ms while the game runs, and gives the verdict (LOST,
+// TIME_UP, the word) once the time is up.
+func TestStatusHandler(t *testing.T) {
+	d := setupDispatcherWithTimer(30 * time.Millisecond)
+
+	newGame := d.Dispatch(protocol.CommandRequest{Action: "NEW_GAME", Player: "Alice"})
+	if newGame.TimeLeftMs <= 0 {
+		t.Fatalf("expected time_left_ms in the NEW_GAME response, got %+v", newGame)
+	}
+	status := protocol.CommandRequest{Action: "STATUS", SessionID: newGame.SessionID}
+
+	if r := d.Dispatch(status); r.Code != "PLAYER_NOT_ALLOWED" {
+		t.Errorf("STATUS without sig: expected PLAYER_NOT_ALLOWED, got %+v", r)
+	}
+	if r := d.Dispatch(signed(status, newGame.ResumeToken)); r.Type != "STATE" || r.Status != "IN_PROGRESS" || r.TimeLeftMs <= 0 {
+		t.Errorf("signed STATUS: expected STATE IN_PROGRESS with time_left_ms, got %+v", r)
+	}
+
+	time.Sleep(50 * time.Millisecond)
+
+	r := d.Dispatch(signed(status, newGame.ResumeToken))
+	if r.Status != "LOST" || r.Reason != "TIME_UP" || r.SecretWord == "" {
+		t.Errorf("STATUS after the deadline: expected LOST, TIME_UP and the word, got %+v", r)
+	}
+	letter := signed(protocol.CommandRequest{Action: "LETTER", SessionID: newGame.SessionID, Letter: "e"}, newGame.ResumeToken)
+	if r := d.Dispatch(letter); r.Code != "INVALID_STATE" {
+		t.Errorf("LETTER after the deadline: expected INVALID_STATE, got %+v", r)
 	}
 }

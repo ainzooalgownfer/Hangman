@@ -23,4 +23,6 @@ type CommandResponse struct {
 	Code         string   `json:"code,omitempty"` // errors
 	ResumeToken  string   `json:"resume_token,omitempty"`
 	Replayed     bool     `json:"replayed,omitempty"`
+	TimeLeftMs   int64    `json:"time_left_ms,omitempty"`
+	Reason       string   `json:"reason,omitempty"`
 }
