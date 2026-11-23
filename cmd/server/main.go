@@ -56,7 +56,10 @@ func main() {
 	stop := store.StartJanitor(cfg.SessionTTL, 30*time.Second)
 	defer stop()
 
-	server := network.NewTCPServer(cfg.Address, cfg.MaxLineSize, cfg.IdleTimeout, dispatcher, tlsConfig)
+	hub := network.NewHub()
+
+	server := network.NewTCPServer(cfg.Address, cfg.MaxLineSize, cfg.IdleTimeout,
+		 dispatcher, tlsConfig, hub)
 	if err := server.Start(); err != nil {
 		slog.Error("cannot listen", "err", err)
 		os.Exit(1)

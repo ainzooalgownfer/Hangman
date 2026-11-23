@@ -8,6 +8,7 @@ import (
 	"hangman/internal/protocol"
 	"io"
 	"net"
+	"sync"
 	"time"
 )
 
@@ -18,6 +19,7 @@ type ClientConnection struct {
 	scanner     *bufio.Scanner
 	sessionID   string
 	idleTimeout time.Duration
+	wmu         sync.Mutex
 }
 
 func NewClientConnection(conn net.Conn, maxLineSize int, idleTimeout time.Duration) *ClientConnection {
@@ -56,6 +58,10 @@ func (c *ClientConnection) ReadCommand() (protocol.CommandRequest, error) {
 }
 
 func (c *ClientConnection) SendResponse(res protocol.CommandResponse) error {
+	
+	c.wmu.Lock()
+	defer c.wmu.Unlock()
+	
 	data, err := json.Marshal(res)
 	if err != nil {
 		return err

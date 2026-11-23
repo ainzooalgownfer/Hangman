@@ -19,24 +19,28 @@ import (
 // each socket connection is handled in its own goroutine, allowing multiple clients to connect simultaneously
 
 type TCPServer struct {
-	address     string
-	maxLineSize int
-	idleTimeout time.Duration
-	listener    net.Listener
-	dispatcher  *command.CommandDispatcher
-	nextConnID  atomic.Int64
-	tlsConfig   *tls.Config
+	address      string
+	maxLineSize  int
+	idleTimeout  time.Duration
+	listener     net.Listener
+	dispatcher   *command.CommandDispatcher
+	nextConnID   atomic.Int64
+	tlsConfig    *tls.Config
+	hub          *Hub
+	OnDisconnect func(connID int64)
 }
 
 func NewTCPServer(address string, maxLineSize int,
 	idleTimeout time.Duration,
-	dispatcher *command.CommandDispatcher, tlsConfig *tls.Config) *TCPServer {
+	dispatcher *command.CommandDispatcher,
+	tlsConfig *tls.Config, hub *Hub) *TCPServer {
 	return &TCPServer{
 		address:     address,
 		maxLineSize: maxLineSize,
 		idleTimeout: idleTimeout,
 		dispatcher:  dispatcher,
 		tlsConfig:   tlsConfig,
+		hub:         hub,
 	}
 }
 
@@ -82,6 +86,15 @@ func (s *TCPServer) handleConnection(conn net.Conn) {
 	defer func() { _ = client.Close() }()
 
 	connID := s.nextConnID.Add(1)
+
+	s.hub.Add(connID, client)
+	defer func() {
+		s.hub.Remove(connID)
+		if s.OnDisconnect != nil {
+			s.OnDisconnect(connID)
+		}
+	}()
+
 	remote := conn.RemoteAddr().String()
 	slog.Info("client connected", "remote", remote)
 	defer slog.Info("client disconnected", "remote", remote)
