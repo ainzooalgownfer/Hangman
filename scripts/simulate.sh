@@ -21,21 +21,32 @@ send() {
 	read -r -t 5 resp <&3 || resp="TIMEOUT"
 }
 
+# sign prints the request signature the server expects (internal/auth):
+# hex HMAC-SHA256, keyed with the resume_token, of
+# "<session_id>|<request_id>|<action>|<letter>".
+sign() {
+	local token=$1 msg=$2
+	printf '%s' "$msg" | openssl dgst -sha256 -hmac "$token" | sed 's/^.*= //'
+}
+
 # play_one plays a full game and prints exactly one result line.
 play_one() {
-	local n=$1 id letter
+	local n=$1 id token letter sig rid=0
 	exec 3<>"/dev/tcp/$HOST/$PORT" 2>/dev/null || { echo "player $n: CONNECT_FAILED"; return; }
 
 	send "{\"action\":\"NEW_GAME\",\"player\":\"bot$n\"}"
 	id=$(sed -nE 's/.*"session_id":"([^"]+)".*/\1/p' <<<"$resp")
-	if [[ -z $id ]]; then
-		echo "player $n: ERROR no session id: $resp"
+	token=$(sed -nE 's/.*"resume_token":"([^"]+)".*/\1/p' <<<"$resp")
+	if [[ -z $id || -z $token ]]; then
+		echo "player $n: ERROR no session id or token: $resp"
 		exec 3>&-
 		return
 	fi
 
 	for letter in $LETTERS; do
-		send "{\"action\":\"LETTER\",\"session_id\":\"$id\",\"letter\":\"$letter\"}"
+		rid=$((rid + 1))
+		sig=$(sign "$token" "$id|$rid|LETTER|$letter")
+		send "{\"action\":\"LETTER\",\"session_id\":\"$id\",\"request_id\":$rid,\"letter\":\"$letter\",\"sig\":\"$sig\"}"
 		case $resp in
 			*'"status":"WON"'*)  echo "player $n: WON $id";  break ;;
 			*'"status":"LOST"'*) echo "player $n: LOST $id"; break ;;
@@ -48,7 +59,9 @@ play_one() {
 	done
 
 	# Clean up so finished games don't stay in the server's memory.
-	send "{\"action\":\"QUIT\",\"session_id\":\"$id\"}"
+	rid=$((rid + 1))
+	sig=$(sign "$token" "$id|$rid|QUIT|")
+	send "{\"action\":\"QUIT\",\"session_id\":\"$id\",\"request_id\":$rid,\"sig\":\"$sig\"}"
 	exec 3>&-
 }
 

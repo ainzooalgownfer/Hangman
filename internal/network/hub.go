@@ -15,19 +15,19 @@ type Hub struct {
 }
 
 func NewHub() *Hub {
-	// TODO: return a Hub with its map created (like NewSessionManager)
+	
 	return &Hub{conns: make(map[int64]*ClientConnection)}
 }
 
 func (h *Hub) Add(connID int64, c *ClientConnection) {
-	// TODO: lock, put it in the map
+
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.conns[connID] = c
 }
 
 func (h *Hub) Remove(connID int64) {
-	// TODO: lock, delete it from the map
+
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	delete(h.conns, connID)
