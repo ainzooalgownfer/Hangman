@@ -59,7 +59,7 @@ func main() {
 	hub := network.NewHub()
 
 	server := network.NewTCPServer(cfg.Address, cfg.MaxLineSize, cfg.IdleTimeout,
-		 dispatcher, tlsConfig, hub)
+		dispatcher, tlsConfig, hub)
 	if err := server.Start(); err != nil {
 		slog.Error("cannot listen", "err", err)
 		os.Exit(1)

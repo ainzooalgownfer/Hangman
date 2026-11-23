@@ -58,10 +58,10 @@ func (c *ClientConnection) ReadCommand() (protocol.CommandRequest, error) {
 }
 
 func (c *ClientConnection) SendResponse(res protocol.CommandResponse) error {
-	
+
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
-	
+
 	data, err := json.Marshal(res)
 	if err != nil {
 		return err
