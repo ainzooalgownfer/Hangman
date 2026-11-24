@@ -23,6 +23,7 @@ type Config struct {
 	TLSCert       string        `yaml:"tls_cert"`
 	TLSKey        string        `yaml:"tls_key"`
 	GameTimeLimit time.Duration `yaml:"game_time_limit"`
+	TurnTimeLimit time.Duration `yaml:"turn_time_limit"`
 }
 
 func Default() Config {
@@ -33,6 +34,7 @@ func Default() Config {
 		MaxAttempts: 10,
 		SessionTTL:  5 * time.Minute,
 		WordsPath:   "words.json",
+		TurnTimeLimit: 30 * time.Second,
 		Words: []string{
 			"lumière", "brave", "crane", "delta", "eagle",
 			"flame", "grape", "honey", "igloo", "joker",

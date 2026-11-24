@@ -15,6 +15,7 @@ import (
 	"hangman/internal/config"
 	"hangman/internal/game"
 	"hangman/internal/network"
+	"hangman/internal/room"
 )
 
 func main() {
@@ -58,8 +59,15 @@ func main() {
 
 	hub := network.NewHub()
 
+	rooms := room.NewManager(hub, cfg.MaxAttempts, cfg.TurnTimeLimit, cfg.Words)
+	handlers.RegisterRooms(dispatcher, rooms)
+	stopRooms := rooms.StartJanitor(cfg.SessionTTL, 30*time.Second)
+	defer stopRooms()
+
 	server := network.NewTCPServer(cfg.Address, cfg.MaxLineSize, cfg.IdleTimeout,
 		dispatcher, tlsConfig, hub)
+
+	server.OnDisconnect = rooms.Disconnected
 	if err := server.Start(); err != nil {
 		slog.Error("cannot listen", "err", err)
 		os.Exit(1)

@@ -10,4 +10,4 @@ max_attempts: 10            # wrong guesses allowed before the game is lost
 session_time_to_live: 5m    # how long a disconnected game can still be resumed
 words_path: words.json      # JSON array of words, relative to the working dir
 game_time_limit: 3m         # time to find the word; 0 = no limit
-
+turn_time_limit: 30s        # time per turn in a duel

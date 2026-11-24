@@ -129,11 +129,12 @@ func (r *Room) view(i int) protocol.CommandResponse {
 	}
 	if r.status == "FINISHED" {
 		resp.SecretWord = r.word
-		if r.winner == -1 {
+		switch r.winner {
+		case -1:
 			resp.Result = "DRAW"
-		} else if r.winner == i {
+		case i:
 			resp.Result = "WIN"
-		} else {
+		default:
 			resp.Result = "LOSE"
 		}
 	}

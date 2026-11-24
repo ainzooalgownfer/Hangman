@@ -14,3 +14,12 @@ func RegisterAll(d *command.CommandDispatcher, store SessionStore, maxAttempts i
 	d.Register("STATUS", &StatusHandler{Sessions: store})
 
 }
+
+// RegisterRooms adds the room actions (1 vs 1 duel). Solo actions are unchanged.
+func RegisterRooms(d *command.CommandDispatcher, rooms RoomStore) {
+	d.Register("LIST_ROOMS", &ListRoomsHandler{Rooms: rooms})
+	d.Register("CREATE_ROOM", &CreateRoomHandler{Rooms: rooms})
+	d.Register("JOIN_ROOM", &JoinRoomHandler{Rooms: rooms})
+	d.Register("ROOM_LETTER", &RoomLetterHandler{Rooms: rooms})
+	d.Register("LEAVE_ROOM", &LeaveRoomHandler{Rooms: rooms})
+}
