@@ -18,12 +18,16 @@ type Pusher interface {
 }
 
 type player struct {
-	name      string
-	token     string // HMAC key for this player's signed requests
-	connID    int64
-	connected bool
-	score     int
-	lives     int
+	name          string
+	token         string // HMAC key for this player's signed requests
+	connID        int64
+	connected     bool
+	score         int
+	lives         int
+	lastRequestID int64 // replay of this player's last letter, as in solo
+	lastReply     protocol.CommandResponse
+	maxRequestID  int64 // for RESUME
+	gone          bool  // has left the room
 }
 
 // Room is one 1 vs 1 duel. Everything below mu is protected by it.
@@ -41,6 +45,9 @@ type Room struct {
 	tried   []string  // base letters already played, by both players
 	version int       // +1 on every change
 	message string    // last event, shown to both players
+	winner  int       // index of the winner once FINISHED; -1 = draw
+
+	lastActive time.Time // last change, for the janitor (like GameSession.lastActive)
 }
 
 func NewRoom(id, name, word string, maxAttempts int, turnLimit time.Duration, p Pusher) *Room {
@@ -51,8 +58,19 @@ func NewRoom(id, name, word string, maxAttempts int, turnLimit time.Duration, p 
 		turnLimit:   turnLimit,
 		pusher:      p,
 		status:      "WAITING",
-		tried:       make([]string, 0)}
+		tried:       make([]string, 0),
+		lastActive:  time.Now()}
 }
+
+// IdleSince reports how long the room has gone without a change.
+func (r *Room) IdleSince(now time.Time) time.Duration {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return now.Sub(r.lastActive)
+}
+
+// Stop releases what the room holds before it is deleted: the turn timer (task 8).
+func (r *Room) Stop() {}
 
 func (r *Room) Token(i int) string {
 	r.mu.Lock()
@@ -109,6 +127,16 @@ func (r *Room) view(i int) protocol.CommandResponse {
 		t := r.turn // a copy: never hand out a pointer into the room
 		resp.Turn = &t
 	}
+	if r.status == "FINISHED" {
+		resp.SecretWord = r.word
+		if r.winner == -1 {
+			resp.Result = "DRAW"
+		} else if r.winner == i {
+			resp.Result = "WIN"
+		} else {
+			resp.Result = "LOSE"
+		}
+	}
 	return resp
 }
 
@@ -136,6 +164,7 @@ func (r *Room) Join(name string, connID int64) protocol.CommandResponse {
 	r.players = append(r.players, p)
 	me := len(r.players) - 1
 	r.version++
+	r.lastActive = time.Now()
 
 	starts := len(r.players) == 2
 	if starts {
@@ -161,4 +190,33 @@ func (r *Room) Join(name string, connID int64) protocol.CommandResponse {
 		r.pusher.Push(creatorConn, toCreator)
 	}
 	return reply
+}
+
+// Disconnected marks the player on connID as gone and tells the opponent.
+// A connection that isn't in this room changes nothing.
+func (r *Room) Disconnected(connID int64) {
+	r.mu.Lock()
+	me := -1
+	for i, p := range r.players {
+		if p.connID == connID && p.connected {
+			me = i
+			break
+		}
+	}
+	if me == -1 {
+		r.mu.Unlock()
+		return // not one of ours
+	}
+	r.players[me].connected = false
+	if r.status != "PLAYING" {
+		r.mu.Unlock()
+		return // alone in the room, or the duel is over: nobody to tell
+	}
+	r.version++
+	other := 1 - me
+	toOther := r.view(other)
+	otherConn := r.players[other].connID
+	r.mu.Unlock()
+
+	r.pusher.Push(otherConn, toOther)
 }

@@ -15,7 +15,7 @@ type Hub struct {
 }
 
 func NewHub() *Hub {
-	
+
 	return &Hub{conns: make(map[int64]*ClientConnection)}
 }
 
