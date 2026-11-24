@@ -96,8 +96,8 @@ func (s *TCPServer) handleConnection(conn net.Conn) {
 	}()
 
 	remote := conn.RemoteAddr().String()
-	slog.Info("client connected", "remote", remote)
-	defer slog.Info("client disconnected", "remote", remote)
+	slog.Info("client connected", "remote", remote, "connID", connID)
+	defer slog.Info("client disconnected", "remote", remote, "connID", connID)
 
 	for {
 		req, err := client.ReadCommand()
@@ -140,20 +140,7 @@ func (s *TCPServer) handleConnection(conn net.Conn) {
 		resp := s.dispatcher.Dispatch(req)
 		resp.RequestID = req.RequestID
 
-		session := resp.SessionID
-		if session == "" {
-			session = req.SessionID
-		}
-		slog.Info("request",
-			"remote", remote,
-			"connID", req.ConnID,
-			"action", req.Action,
-			"session", session,
-			"type", resp.Type,
-			"status", resp.Status,
-			"code", resp.Code,
-			"duration", time.Since(start),
-		)
+		slog.Info("request", requestAttrs(remote, req, resp, time.Since(start))...)
 
 		if resp.SessionID != "" {
 			client.SetSessionID(resp.SessionID)
@@ -168,4 +155,33 @@ func (s *TCPServer) handleConnection(conn net.Conn) {
 			return
 		}
 	}
+}
+
+func requestAttrs(remote string, req protocol.CommandRequest, resp protocol.CommandResponse, d time.Duration) []any {
+	attrs := []any{
+		"remote", remote,
+		"connID", req.ConnID,
+		"action", req.Action,
+		"type", resp.Type,
+		"duration", d,
+	}
+	add := func(key, value string) {
+		if value != "" {
+			attrs = append(attrs, key, value)
+		}
+	}
+	add("session", firstNonEmpty(resp.SessionID, req.SessionID))
+	add("room", firstNonEmpty(resp.RoomID, req.RoomID))
+	add("player", req.Player)
+	add("status", resp.Status)
+	add("code", resp.Code)
+	add("result", resp.Result)
+	return attrs
+}
+
+func firstNonEmpty(a, b string) string {
+	if a != "" {
+		return a
+	}
+	return b
 }

@@ -51,5 +51,7 @@ func (h *Hub) Push(connID int64, msg protocol.CommandResponse) {
 	err := conn.SendResponse(msg)
 	if err != nil {
 		slog.Warn("push failed", "connID", connID, "err", err)
+		return
 	}
+	slog.Info("push", "connID", connID, "type", msg.Type, "room", msg.RoomID, "status", msg.Status, "version", msg.Version)
 }
