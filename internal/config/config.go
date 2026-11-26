@@ -28,12 +28,12 @@ type Config struct {
 
 func Default() Config {
 	return Config{
-		Address:     ":8080",
-		MaxLineSize: 4096,
-		IdleTimeout: 5 * time.Minute,
-		MaxAttempts: 10,
-		SessionTTL:  5 * time.Minute,
-		WordsPath:   "words.json",
+		Address:       ":8080",
+		MaxLineSize:   4096,
+		IdleTimeout:   5 * time.Minute,
+		MaxAttempts:   10,
+		SessionTTL:    5 * time.Minute,
+		WordsPath:     "words.json",
 		TurnTimeLimit: 30 * time.Second,
 		Words: []string{
 			"lumière", "brave", "crane", "delta", "eagle",
@@ -67,7 +67,7 @@ func Load() (Config, error) {
 		data, err := os.ReadFile(cfg.WordsPath)
 
 		if errors.Is(err, fs.ErrNotExist) {
-			//keep current list
+		
 		} else if err != nil {
 			return Config{}, fmt.Errorf("reading %s: %w", cfg.WordsPath, err)
 		} else {

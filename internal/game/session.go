@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"hangman/internal/errs"
 	"hangman/internal/game/state"
 	"hangman/internal/game/words"
 	"hangman/internal/protocol"
@@ -59,7 +60,7 @@ func (s *GameSession) GuessOnce(requestID, connID int64, letter string) protocol
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if connID != s.owner {
-		return notOwnerError()
+		return errs.NotOwner()
 	}
 	if resp, ok := s.replay(requestID); ok {
 		return resp
@@ -82,7 +83,7 @@ func (s *GameSession) QuitOnce(requestID, connID int64) protocol.CommandResponse
 	defer s.mu.Unlock()
 
 	if connID != s.owner {
-		return notOwnerError()
+		return errs.NotOwner()
 	}
 	if resp, ok := s.replay(requestID); ok {
 		return resp
@@ -201,14 +202,6 @@ func (s *GameSession) remember(requestID int64, resp protocol.CommandResponse) {
 	}
 }
 
-func notOwnerError() protocol.CommandResponse {
-	return protocol.CommandResponse{
-		Type:    "ERROR",
-		Code:    "PLAYER_NOT_ALLOWED",
-		Message: "Cette partie est jouée depuis une autre connexion.",
-	}
-}
-
 // ResumeOnce hands the game to connID. requestID must be higher than every
 // request_id seen on this session, so a captured RESUME can't be sent again.
 func (s *GameSession) ResumeOnce(requestID, connID int64) protocol.CommandResponse {
@@ -216,11 +209,7 @@ func (s *GameSession) ResumeOnce(requestID, connID int64) protocol.CommandRespon
 	defer s.mu.Unlock()
 
 	if requestID <= s.maxRequestID {
-		return protocol.CommandResponse{
-			Type:    "ERROR",
-			Code:    "PLAYER_NOT_ALLOWED",
-			Message: "Requête de reprise déjà utilisée.",
-		}
+		return errs.ResumeAlreadyUsed()
 	}
 	s.maxRequestID = requestID
 	s.owner = connID

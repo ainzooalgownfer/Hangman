@@ -130,3 +130,37 @@ func TestDuelThroughDispatcher(t *testing.T) {
 		t.Errorf("a room both players left must be removed, still listed: %+v", r.Rooms)
 	}
 }
+
+// TestRoomResumeAndStatusThroughDispatcher checks that RESUME and STATUS go to
+// the room when the request has a room_id, and still to solo otherwise.
+func TestRoomResumeAndStatusThroughDispatcher(t *testing.T) {
+	d, _ := setupRooms()
+	created := d.Dispatch(protocol.CommandRequest{Action: "CREATE_ROOM", Player: "Samy", ConnID: 1})
+	id, samy := created.RoomID, created.ResumeToken
+	d.Dispatch(protocol.CommandRequest{Action: "JOIN_ROOM", Player: "Mohamed", RoomID: id, ConnID: 2})
+
+	resume := protocol.CommandRequest{Action: "RESUME", RoomID: id, RequestID: 5, ConnID: 3}
+	if r := d.Dispatch(resume); r.Code != "PLAYER_NOT_ALLOWED" {
+		t.Errorf("unsigned room RESUME: expected PLAYER_NOT_ALLOWED, got %+v", r)
+	}
+	if r := d.Dispatch(roomSigned(resume, samy)); r.Type != "ROOM" || r.RoomID != id {
+		t.Fatalf("room RESUME: expected the ROOM, got %+v", r)
+	}
+
+	status := protocol.CommandRequest{Action: "STATUS", RoomID: id, RequestID: 6, ConnID: 3}
+	if r := d.Dispatch(roomSigned(status, samy)); r.Type != "ROOM" || r.Status != "PLAYING" {
+		t.Errorf("room STATUS: expected ROOM PLAYING, got %+v", r)
+	}
+
+	nope := roomSigned(protocol.CommandRequest{Action: "RESUME", RoomID: "NOPE", RequestID: 7, ConnID: 3}, samy)
+	if r := d.Dispatch(nope); r.Code != "UNKNOWN_ROOM" {
+		t.Errorf("RESUME on an unknown room: expected UNKNOWN_ROOM, got %+v", r)
+	}
+
+	// Solo still works on the same actions.
+	game := d.Dispatch(protocol.CommandRequest{Action: "NEW_GAME", Player: "Lina"})
+	solo := signed(protocol.CommandRequest{Action: "RESUME", SessionID: game.SessionID, RequestID: 1}, game.ResumeToken)
+	if r := d.Dispatch(solo); r.Type != "STATE" {
+		t.Errorf("solo RESUME must still work, got %+v", r)
+	}
+}

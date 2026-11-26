@@ -1,9 +1,9 @@
 package command
 
 import (
-	"fmt"
 	"strings"
 
+	"hangman/internal/errs"
 	"hangman/internal/protocol"
 )
 
@@ -25,11 +25,13 @@ func (d *CommandDispatcher) Register(action string, handler CommandHandler) {
 func (d *CommandDispatcher) Dispatch(req protocol.CommandRequest) protocol.CommandResponse {
 	handler, exists := d.handlers[strings.ToUpper(req.Action)]
 	if !exists {
-		return protocol.CommandResponse{
-			Type:    "ERROR",
-			Code:    "UNKNOWN_ACTION",
-			Message: fmt.Sprintf("Action non reconnue: '%s'", req.Action),
-		}
+		return errs.UnknownAction(req.Action)
 	}
 	return handler.Handle(req)
+}
+
+// Handler returns the handler registered for action, if any.
+func (d *CommandDispatcher) Handler(action string) (CommandHandler, bool) {
+	h, ok := d.handlers[strings.ToUpper(action)]
+	return h, ok
 }

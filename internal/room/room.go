@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"hangman/internal/errs"
 	"hangman/internal/game/words"
 	"hangman/internal/protocol"
 )
@@ -47,7 +48,10 @@ type Room struct {
 	message string    // last event, shown to both players
 	winner  int       // index of the winner once FINISHED; -1 = draw
 
-	lastActive time.Time // last change, for the janitor (like GameSession.lastActive)
+	lastActive   time.Time // last change, for the janitor (like GameSession.lastActive)
+	turnSeq      int       // +1 every time the turn passes, so an old timer knows it's stale
+	turnDeadline time.Time // when the current turn ends (zero = no timer)
+	timer        *time.Timer
 }
 
 func NewRoom(id, name, word string, maxAttempts int, turnLimit time.Duration, p Pusher) *Room {
@@ -70,7 +74,11 @@ func (r *Room) IdleSince(now time.Time) time.Duration {
 }
 
 // Stop releases what the room holds before it is deleted: the turn timer (task 8).
-func (r *Room) Stop() {}
+func (r *Room) Stop() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.stopTimer()
+}
 
 func (r *Room) Token(i int) string {
 	r.mu.Lock()
@@ -126,6 +134,9 @@ func (r *Room) view(i int) protocol.CommandResponse {
 	if r.status == "PLAYING" {
 		t := r.turn // a copy: never hand out a pointer into the room
 		resp.Turn = &t
+		if !r.turnDeadline.IsZero() {
+			resp.TurnTimeLeftMs = time.Until(r.turnDeadline).Milliseconds()
+		}
 	}
 	if r.status == "FINISHED" {
 		resp.SecretWord = r.word
@@ -148,11 +159,7 @@ func (r *Room) Join(name string, connID int64) protocol.CommandResponse {
 
 	if len(r.players) == 2 {
 		r.mu.Unlock()
-		return protocol.CommandResponse{
-			Type:    "ERROR",
-			Code:    "PLAYER_NOT_ALLOWED",
-			Message: "Salle complète.",
-		}
+		return errs.RoomFull()
 	}
 
 	p := &player{
@@ -172,6 +179,7 @@ func (r *Room) Join(name string, connID int64) protocol.CommandResponse {
 		r.status = "PLAYING"
 		r.turn = 0 // the creator plays first
 		r.message = p.name + " a rejoint la salle."
+		r.startTurnTimer()
 	}
 
 	reply := r.view(me)

@@ -17,11 +17,3 @@ func validSig(token string, req protocol.CommandRequest) bool {
 	}
 	return auth.Verify(token, auth.Message(id, req.RequestID, req.Action, payload), req.Sig)
 }
-
-func inValidSig() protocol.CommandResponse {
-	return protocol.CommandResponse{
-		Type:    "ERROR",
-		Code:    "PLAYER_NOT_ALLOWED",
-		Message: "Invalid signateur",
-	}
-}

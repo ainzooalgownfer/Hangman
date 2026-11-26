@@ -22,4 +22,12 @@ func RegisterRooms(d *command.CommandDispatcher, rooms RoomStore) {
 	d.Register("JOIN_ROOM", &JoinRoomHandler{Rooms: rooms})
 	d.Register("ROOM_LETTER", &RoomLetterHandler{Rooms: rooms})
 	d.Register("LEAVE_ROOM", &LeaveRoomHandler{Rooms: rooms})
+
+	for action, room := range map[string]command.CommandHandler{
+		"RESUME": &RoomResumeHandler{Rooms: rooms},
+		"STATUS": &RoomStatusHandler{Rooms: rooms},
+	} {
+		solo, _ := d.Handler(action)
+		d.Register(action, roomOrSolo{room: room, solo: solo})
+	}
 }

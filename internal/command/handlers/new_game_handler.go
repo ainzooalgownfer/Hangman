@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"hangman/internal/errs"
 	"hangman/internal/game"
 	"hangman/internal/game/words"
 	"hangman/internal/protocol"
@@ -21,11 +22,7 @@ type NewGameHandler struct {
 func (h *NewGameHandler) Handle(req protocol.CommandRequest) protocol.CommandResponse {
 	player := strings.TrimSpace(req.Player)
 	if player == "" {
-		return protocol.CommandResponse{
-			Type:    "ERROR",
-			Code:    "INVALID_MESSAGE",
-			Message: "Le champ 'player' est obligatoire.",
-		}
+		return errs.MissingPlayer()
 	}
 
 	session := game.NewGameSession(rand.Text(), player, words.RandomWord(h.Words), h.MaxAttempts)

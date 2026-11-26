@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"hangman/internal/errs"
 	"hangman/internal/protocol"
 )
 
@@ -10,24 +11,16 @@ type ResumeHandler struct {
 
 func (h *ResumeHandler) Handle(req protocol.CommandRequest) protocol.CommandResponse {
 	if req.SessionID == "" {
-		return protocol.CommandResponse{
-			Type:    "ERROR",
-			Code:    "UNKNOWN_SESSION",
-			Message: "Identifiant de session manquant.",
-		}
+		return errs.MissingSession()
 	}
 	session, ok := h.Sessions.Get(req.SessionID)
 
 	if !ok {
-		return protocol.CommandResponse{
-			Type:    "ERROR",
-			Code:    "UNKNOWN_SESSION",
-			Message: "Session introuvable.",
-		}
+		return errs.UnknownSession()
 	}
 
 	if !validSig(session.ResumeToken(), req) {
-		return inValidSig()
+		return errs.InvalidSignature()
 	}
 
 	resp := session.ResumeOnce(req.RequestID, req.ConnID)

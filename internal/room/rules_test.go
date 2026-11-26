@@ -215,3 +215,62 @@ func TestConcurrentLetters(t *testing.T) {
 		}
 	}
 }
+
+func TestResumeMovesConnection(t *testing.T) {
+	r, p := duel(t, "chat", 6)
+	r.Disconnected(1) // Samy's connection drops
+
+	resp := r.Resume(0, 5, 3) // he comes back on connection 3
+	if resp.Type != "ROOM" || intVal(t, "you", resp.You) != 0 || !resp.Players[0].Connected {
+		t.Fatalf("resume: expected ROOM, you=0, Samy connected, got %+v", resp)
+	}
+	if pushed, _ := p.last(2); !pushed.Players[0].Connected {
+		t.Errorf("Mohamed must be told Samy is back, got %+v", pushed.Players)
+	}
+	if r := r.Letter(0, 6, 1, "c"); r.Code != "PLAYER_NOT_ALLOWED" {
+		t.Errorf("the old connection must be refused, got %+v", r)
+	}
+	if r := r.Letter(0, 6, 3, "c"); r.Type != "ROOM" {
+		t.Errorf("the new connection must be able to play, got %+v", r)
+	}
+}
+
+func TestResumeReplayRefused(t *testing.T) {
+	r, _ := duel(t, "chat", 6)
+
+	if resp := r.Resume(0, 5, 3); resp.Type != "ROOM" {
+		t.Fatalf("first resume: expected ROOM, got %+v", resp)
+	}
+	for _, id := range []int64{5, 4, 0} {
+		if resp := r.Resume(0, id, 4); resp.Code != "PLAYER_NOT_ALLOWED" {
+			t.Errorf("resume with request_id %d after 5: expected PLAYER_NOT_ALLOWED, got %+v", id, resp)
+		}
+	}
+
+	r.Letter(0, 10, 3, "c") // a letter also raises the highest request_id seen
+	if resp := r.Resume(0, 9, 4); resp.Code != "PLAYER_NOT_ALLOWED" {
+		t.Errorf("resume with request_id 9 after a letter with 10: expected PLAYER_NOT_ALLOWED, got %+v", resp)
+	}
+}
+
+func TestResumeAfterLeaveRefused(t *testing.T) {
+	r, _ := duel(t, "chat", 6)
+	r.Leave(0, 1)
+	if resp := r.Resume(0, 5, 3); resp.Code != "PLAYER_NOT_ALLOWED" {
+		t.Errorf("a player who left can't come back, got %+v", resp)
+	}
+}
+
+func TestStatusChangesNothing(t *testing.T) {
+	r, p := duel(t, "chat", 6)
+	before := r.Status(1)
+	pushes := p.count(1)
+
+	again := r.Status(1)
+	if again.Type != "ROOM" || again.Version != before.Version || intVal(t, "you", again.You) != 1 {
+		t.Errorf("status: expected the same view for player 1, got %+v", again)
+	}
+	if p.count(1) != pushes {
+		t.Error("status must push nothing")
+	}
+}

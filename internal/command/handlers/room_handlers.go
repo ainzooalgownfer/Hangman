@@ -3,6 +3,8 @@ package handlers
 import (
 	"strings"
 
+	"hangman/internal/command"
+	"hangman/internal/errs"
 	"hangman/internal/game/words"
 	"hangman/internal/protocol"
 	"hangman/internal/room"
@@ -19,19 +21,6 @@ func roomPlayer(r *room.Room, req protocol.CommandRequest) (int, bool) {
 	return -1, false
 }
 
-func unknownRoom() protocol.CommandResponse {
-	return protocol.CommandResponse{Type: "ERROR", Code: "UNKNOWN_ROOM", Message: "Salle introuvable."}
-}
-
-func missingPlayer() protocol.CommandResponse {
-	return protocol.CommandResponse{
-		Type:    "ERROR",
-		Code:    "INVALID_MESSAGE",
-		Message: "Le champ 'player' est obligatoire.",
-	}
-}
-
-
 type ListRoomsHandler struct {
 	Rooms RoomStore
 }
@@ -46,10 +35,10 @@ type CreateRoomHandler struct {
 }
 
 func (h *CreateRoomHandler) Handle(req protocol.CommandRequest) protocol.CommandResponse {
-	
+
 	player := strings.TrimSpace(req.Player)
 	if player == "" {
-		return missingPlayer()
+		return errs.MissingPlayer()
 	}
 	return h.Rooms.Create(strings.TrimSpace(req.RoomName), player, req.ConnID)
 }
@@ -62,11 +51,11 @@ type JoinRoomHandler struct {
 func (h *JoinRoomHandler) Handle(req protocol.CommandRequest) protocol.CommandResponse {
 	player := strings.TrimSpace(req.Player)
 	if player == "" {
-		return missingPlayer()
+		return errs.MissingPlayer()
 	}
 	r, ok := h.Rooms.Get(req.RoomID)
 	if !ok {
-		return unknownRoom()
+		return errs.UnknownRoom()
 	}
 	return r.Join(player, req.ConnID) // a full room answers PLAYER_NOT_ALLOWED itself
 }
@@ -79,30 +68,22 @@ type RoomLetterHandler struct {
 func (h *RoomLetterHandler) Handle(req protocol.CommandRequest) protocol.CommandResponse {
 	r, ok := h.Rooms.Get(req.RoomID)
 	if !ok {
-		return unknownRoom()
+		return errs.UnknownRoom()
 	}
-	
+
 	i, ok := roomPlayer(r, req)
 	if !ok {
-		return inValidSig()
+		return errs.InvalidSignature()
 	}
 	trimmed := strings.TrimSpace(req.Letter)
 	runes := []rune(trimmed)
 	if len(runes) != 1 {
-		return invalidLetterResponse()
+		return errs.InvalidLetter()
 	}
 	if _, ok := words.BaseLetter(runes[0]); !ok {
-		return invalidLetterResponse()
+		return errs.InvalidLetter()
 	}
 	return r.Letter(i, req.RequestID, req.ConnID, trimmed)
-}
-
-func invalidLetterResponse() protocol.CommandResponse {
-	return protocol.CommandResponse{
-		Type:    "ERROR",
-		Code:    "INVALID_LETTER",
-		Message: "Une seule lettre alphabétique est attendue.",
-	}
 }
 
 // LeaveRoomHandler answers LEAVE_ROOM, and deletes the room once nobody is left.
@@ -113,15 +94,59 @@ type LeaveRoomHandler struct {
 func (h *LeaveRoomHandler) Handle(req protocol.CommandRequest) protocol.CommandResponse {
 	r, ok := h.Rooms.Get(req.RoomID)
 	if !ok {
-		return unknownRoom()
+		return errs.UnknownRoom()
 	}
 	i, ok := roomPlayer(r, req)
 	if !ok {
-		return inValidSig()
+		return errs.InvalidSignature()
 	}
 	resp, empty := r.Leave(i, req.ConnID)
 	if empty {
 		h.Rooms.Remove(req.RoomID)
 	}
 	return resp
+}
+
+type RoomResumeHandler struct {
+	Rooms RoomStore
+}
+
+func (h *RoomResumeHandler) Handle(req protocol.CommandRequest) protocol.CommandResponse {
+	r, ok := h.Rooms.Get(req.RoomID)
+	if !ok {
+		return errs.UnknownRoom()
+	}
+	i, ok := roomPlayer(r, req)
+	if !ok {
+		return errs.InvalidSignature()
+	}
+	return r.Resume(i, req.RequestID, req.ConnID)
+}
+
+type roomOrSolo struct {
+	room, solo command.CommandHandler
+}
+
+func (h roomOrSolo) Handle(req protocol.CommandRequest) protocol.CommandResponse {
+	if req.RoomID != "" {
+		return h.room.Handle(req)
+	}
+	return h.solo.Handle(req)
+}
+
+// RoomStatusHandler answers STATUS for a room: the current state.
+type RoomStatusHandler struct {
+	Rooms RoomStore
+}
+
+func (h *RoomStatusHandler) Handle(req protocol.CommandRequest) protocol.CommandResponse {
+	r, ok := h.Rooms.Get(req.RoomID)
+	if !ok {
+		return errs.UnknownRoom()
+	}
+	i, ok := roomPlayer(r, req)
+	if !ok {
+		return errs.InvalidSignature()
+	}
+	return r.Status(i)
 }

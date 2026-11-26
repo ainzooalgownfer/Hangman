@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"hangman/internal/command"
+	"hangman/internal/errs"
 	"hangman/internal/protocol"
 )
 
@@ -105,11 +106,7 @@ func (s *TCPServer) handleConnection(conn net.Conn) {
 		if errors.Is(err, ErrInvalidFormat) {
 
 			slog.Warn("invalid request", "remote", remote, "err", err)
-			if err := client.SendResponse(protocol.CommandResponse{
-				Type:    "ERROR",
-				Code:    "INVALID_MESSAGE",
-				Message: "Requête JSON invalide.",
-			}); err != nil {
+			if err := client.SendResponse(errs.InvalidJSON()); err != nil {
 				return
 			}
 			continue
@@ -119,18 +116,10 @@ func (s *TCPServer) handleConnection(conn net.Conn) {
 			case errors.Is(err, os.ErrDeadlineExceeded):
 				slog.Warn("idle timeout", "remote", remote)
 
-				_ = client.SendResponse(protocol.CommandResponse{
-					Type:    "ERROR",
-					Code:    "TIMEOUT",
-					Message: "Délai d'inactivité dépassé.",
-				})
+				_ = client.SendResponse(errs.Timeout())
 			case errors.Is(err, bufio.ErrTooLong):
 				slog.Warn("message too long", "remote", remote)
-				_ = client.SendResponse(protocol.CommandResponse{
-					Type:    "ERROR",
-					Code:    "INVALID_MESSAGE",
-					Message: "Message trop long.",
-				})
+				_ = client.SendResponse(errs.MessageTooLong())
 			}
 			return
 		}

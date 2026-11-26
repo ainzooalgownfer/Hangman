@@ -3,6 +3,7 @@ package state
 import (
 	"slices"
 
+	"hangman/internal/errs"
 	"hangman/internal/game/words"
 	"hangman/internal/protocol"
 )
@@ -18,11 +19,7 @@ func (s *InProgressState) Guess(session StateSession, letter string) protocol.Co
 	message := "Bien vu !"
 
 	if slices.Contains(session.TriedLetters(), upper) {
-		return protocol.CommandResponse{
-			Type:    "ERROR",
-			Code:    "ALREADY_GUESSED",
-			Message: "Lettre déjà proposée.",
-		}
+		return errs.AlreadyGuessed()
 	}
 
 	session.AddTriedLetter(upper)
